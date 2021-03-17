@@ -45,14 +45,10 @@ namespace RV = RenderVars;
 static const GLchar* vertex_shader_source[] =
 {
 	"#version 330\n\
-	\n\
+	layout (location = 0) in vec3 aPos;\n\
 	void main() {\n\
-	const vec4 vertices[3] = vec4[3](\n\
-	vec4(0.25, -0.25, 0.5, 1.0),\n\
-	vec4(0.25, 0.25, 0.5, 1.0),\n\
-	vec4(-0.25, -0.25, 0.5, 1.0));\n\
 	\n\
-	gl_Position = vertices[gl_VertexID]; \n\
+	gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0); \n\
 	}"
 };
 
@@ -61,10 +57,17 @@ static const GLchar* fragment_shader_source[] =
 	"#version 330\n\
 	\n\
 	out vec4 color;\n\
+	uniform vec4 aCol;\n\
 	\n\
 	void main() {\n\
-	 color = vec4(0.0,0.8,1.0,1.0);\n\
+	 color = aCol;\n\
 	}"
+};
+
+float vertices[] = {
+	-0.5f, -0.5f, 0.0f,
+	0.5f, -0.5f, 0.0f,
+	0.0f, 0.5f, 0.0f
 };
 
 void GLResize(int width, int height) {
@@ -294,23 +297,27 @@ namespace Cube {
 	const char* cube_vertShader =
 		"#version 330\n\
 in vec3 in_Position;\n\
-in vec3 in_Normal;\n\
-out vec4 vert_Normal;\n\
-uniform mat4 objMat;\n\
-uniform mat4 mv_Mat;\n\
 uniform mat4 mvpMat;\n\
+uniform float time;\n\
+out float xcolor;\n\
 void main() {\n\
-	gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
-	vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
+vec3 temp = in_Position;\n\
+temp.x = temp.x + 4*sin(time);\n\
+gl_Position = mvpMat * vec4(temp, 1.0);\n\
+xcolor = min(temp.x, 1.0);\n\
+//xcolor = min(gl_Position.x,1.0);\n\
+xcolor = max(xcolor, 0.0);\n\
 }";
 	const char* cube_fragShader =
 		"#version 330\n\
-in vec4 vert_Normal;\n\
 out vec4 out_Color;\n\
-uniform mat4 mv_Mat;\n\
+in float xcolor;\n\
 uniform vec4 color;\n\
+uniform vec4 ambient;\n\
 void main() {\n\
-	out_Color = vec4(color.xyz * dot(vert_Normal, mv_Mat*vec4(0.0, 1.0, 0.0, 0.0)) + color.xyz * 0.3, 1.0 );\n\
+vec3 rgb =  min(color.rgb, vec3(1.0)); \n\
+rgb.r = xcolor;\n\
+out_Color = vec4(rgb, 1.0 );\n\
 }";
 	void setupCube() {
 		glGenVertexArrays(1, &cubeVao);
@@ -370,12 +377,58 @@ void main() {\n\
 		glBindVertexArray(0);
 		glDisable(GL_PRIMITIVE_RESTART);
 	}
+	void drawTwoCubes()
+	{
+		float currentTime = ImGui::GetTime();
+		float cubeColor = currentTime;
+		float cubeScale = 1 - (float)sin(currentTime);
+		if ((float)sin(cubeColor) < 0) cubeColor = 0;
+		if (cubeScale < 1.f) cubeScale = 1.f;
+
+		glEnable(GL_PRIMITIVE_RESTART);
+		//glm::mat4 TranslationMatrix = glm::translate(glm::mat4(), glm::vec3(-1.0f, 2.0f, 3.0f));
+		//objMat = TranslationMatrix;
+
+		glBindVertexArray(cubeVao);
+		glUseProgram(cubeProgram);
+		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+		/*glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 0.5f+0.5f*sin(currentTime), 1.f, 0.f);
+		glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);*/
+
+		////Translation matrix
+		//TranslationMatrix = glm::translate(glm::mat4(), glm::vec3(-1.0f, 2.0f, 3.0f));
+		////Scale Matrix
+		//glm::mat4 ScaleMatrix = glm::scale(glm::mat4(), glm::vec3(2, 2, 2));
+		////Rotation Matrix
+		//glm::mat4 RotationMatrix = glm::rotate(glm::mat4(), currentTime * 3.f, glm::vec3(0.0f, 1.0f, 0.0f));
+
+		////Secondary Translation Matrix
+		//glm::mat4 TranslationMatrix2 = glm::translate(glm::mat4(), glm::vec3(3.0f, 0.0f, 0.0f));
+
+		////Les operacions amb matrius es fan d'esquerra a dreta -->
+		////la llògica es fa de dreta a esquerra <--
+		//objMat = TranslationMatrix * RotationMatrix * TranslationMatrix2 * ScaleMatrix;
+
+		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+		glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 0.5f, 0.5f, 0.f);
+		glUniform4f(glGetUniformLocation(cubeProgram, "ambient"), 0.4f, 0.4f, 0.4f, 0.0f);
+		glUniform1f(glGetUniformLocation(cubeProgram, "time"), currentTime);
+
+		glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
+		
+		glUseProgram(0);
+		glBindVertexArray(0);
+		glDisable(GL_PRIMITIVE_RESTART);
+	}
 }
 
 /////////////////////////////////////////////////
 
 GLuint program;
 GLuint VAO;
+GLuint VBO;
 void GLinit(int width, int height) {
 	glViewport(0, 0, width, height);
 	glClearColor(0.2f, 0.2f, 0.2f, 1.f);
@@ -387,8 +440,8 @@ void GLinit(int width, int height) {
 	RV::_projection = glm::perspective(RV::FOV, (float)width / (float)height, RV::zNear, RV::zFar);
 
 	// Setup shaders & geometry
-	//Axis::setupAxis();
-	//Cube::setupCube();
+	Axis::setupAxis();
+	Cube::setupCube();
 
 	/////////////////////////////////////////////////////TODO
 	GLuint vertex_shader;
@@ -420,6 +473,20 @@ void GLinit(int width, int height) {
 	glGenVertexArrays(1, &VAO);
 	glBindVertexArray(VAO);
 
+	glGenBuffers(1, &VBO);
+
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+	glVertexAttribPointer(
+		0,
+		3,
+		GL_FLOAT,
+		GL_FALSE,
+		3 * sizeof(float),
+		(void*)0);
+
+	glEnableVertexAttribArray(0);
 
 	glBindVertexArray(0);
 
@@ -428,8 +495,8 @@ void GLinit(int width, int height) {
 }
 
 void GLcleanup() {
-	//Axis::cleanupAxis();
-	//Cube::cleanupCube();
+	Axis::cleanupAxis();
+	Cube::cleanupCube();
 
 	/////////////////////////////////////////////////////TODO
 	// Do your cleanup code here
@@ -442,25 +509,28 @@ void GLcleanup() {
 void GLrender(float dt) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	//RV::_modelView = glm::mat4(1.f);
-	//RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
-	//RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
-	//RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
+	RV::_modelView = glm::mat4(1.f);
+	RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
+	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
+	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
 
-	//RV::_MVP = RV::_projection * RV::_modelView;
+	RV::_MVP = RV::_projection * RV::_modelView;
 
-	//Axis::drawAxis();
-	//Cube::drawCube();
+	Axis::drawAxis();
+	Cube::drawTwoCubes();
 
-	/*float currentTime = ImGui::GetTime();
+	//float currentTime = ImGui::GetTime();
 
-	const GLfloat red[] = { (float)sin(currentTime) * 0.5f + 0.5f, (float)cos(currentTime) * 0.5f + 0.5f, 0.0f, 1.0f };
-	glClearBufferfv(GL_COLOR, 0, red);*/
+	//const GLfloat color[] = { (float)sin(currentTime) * 0.5f + 0.5f, (float)cos(currentTime) * 0.5f + 0.5f, 0.0f, 1.0f };
+	//glClearBufferfv(GL_COLOR, 0, color);
 
-	glUseProgram(program);
-	glPointSize(40.0f);
-	glBindVertexArray(VAO);
-	glDrawArrays(GL_TRIANGLES, 0, 3);
+	//GLuint unifLocation = glGetUniformLocation(program, "aCol");
+	//glUniform4f(unifLocation, (float)sin(currentTime) * 0.5f + 0.5f, (float)cos(currentTime) * 0.5f + 0.5f, 0.0f, 1.0f);
+	//		
+	//glUseProgram(program);
+	//glPointSize(40.0f);
+	//glBindVertexArray(VAO);
+	//glDrawArrays(GL_TRIANGLES, 0, 3);
 
 	/////////////////////////////////////////////////////TODO
 	// Do your render code here
