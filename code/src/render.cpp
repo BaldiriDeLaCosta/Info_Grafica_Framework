@@ -134,6 +134,12 @@ void linkProgram(GLuint program) {
 	}
 }
 
+///////////////////////////////////////////////// LIGHT SOURCE
+namespace Light
+{
+	glm::vec4 lightColor = glm::vec4(1.f, 1.f, 1.f, 0.f);
+}
+
 ////////////////////////////////////////////////// AXIS
 namespace Axis {
 	GLuint AxisVao;
@@ -296,28 +302,32 @@ namespace Cube {
 
 	const char* cube_vertShader =
 		"#version 330\n\
-in vec3 in_Position;\n\
-uniform mat4 mvpMat;\n\
-uniform float time;\n\
-out float xcolor;\n\
-void main() {\n\
-vec3 temp = in_Position;\n\
-temp.x = temp.x + 4*sin(time);\n\
-gl_Position = mvpMat * vec4(temp, 1.0);\n\
-xcolor = min(temp.x, 1.0);\n\
-//xcolor = min(gl_Position.x,1.0);\n\
-xcolor = max(xcolor, 0.0);\n\
+	in vec3 in_Position;\n\
+	in vec3 in_Normal;\n\
+	out vec4 vert_Normal;\n\
+	out vec4 vert_wPos;\n\
+	uniform mat4 objMat;\n\
+	uniform mat4 mv_Mat;\n\
+	uniform mat4 mvpMat;\n\
+	void main() {\n\
+		gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+		vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
 }";
 	const char* cube_fragShader =
 		"#version 330\n\
-out vec4 out_Color;\n\
-in float xcolor;\n\
-uniform vec4 color;\n\
-uniform vec4 ambient;\n\
-void main() {\n\
-vec3 rgb =  min(color.rgb, vec3(1.0)); \n\
-rgb.r = xcolor;\n\
-out_Color = vec4(rgb, 1.0 );\n\
+	in vec4 vert_Normal;\n\
+	in vec4 vert_wPos;\n\
+	out vec4 out_Color;\n\
+	uniform vec4 mv_Mat;\n\
+	uniform vec3 CameraPos;\n\
+	uniform vec4 color;\n\
+	uniform vec4 ambient;\n\
+	uniform vec4 directional_light;\n\
+	uniform vec4 diffuse;\n\
+	void main() {\n\
+		vec3 rgb =  min(color.rgb * ambient.rgb, vec3(1.0)); \n\
+		out_Color = dot(vert_Normal, normalize(directional_light)) * diffuse * color;\n\
+		out_Color += color * ambient;\n\
 }";
 	void setupCube() {
 		glGenVertexArrays(1, &cubeVao);
@@ -412,9 +422,10 @@ out_Color = vec4(rgb, 1.0 );\n\
 		//objMat = TranslationMatrix * RotationMatrix * TranslationMatrix2 * ScaleMatrix;
 
 		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
-		glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 0.5f, 0.5f, 0.f);
-		glUniform4f(glGetUniformLocation(cubeProgram, "ambient"), 0.4f, 0.4f, 0.4f, 0.0f);
-		glUniform1f(glGetUniformLocation(cubeProgram, "time"), currentTime);
+		glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 1.f, 1.f, 0.f);
+		glUniform4f(glGetUniformLocation(cubeProgram, "ambient"), Light::lightColor.r * 0.4f, Light::lightColor.g * 0.4f, Light::lightColor.b * 0.4f, 0.0f);
+		glUniform4f(glGetUniformLocation(cubeProgram, "diffuse"), 1.0f, 1.0f, 1.0f, 1.0f);
+		glUniform4f(glGetUniformLocation(cubeProgram, "directional_light"), 1.0f, 0.0f, 0.0f, 1.0f);
 
 		glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
 		
