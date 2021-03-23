@@ -309,19 +309,26 @@ namespace Cube {
 	out vec4 lightPos;\n\
 	uniform vec3 CameraPos;\n\
 	uniform vec4 directional_light;\n\
-	uniform vec4 lightProjection;\n\
+	out vec4 lightProjection;\n\
 	uniform mat4 objMat;\n\
 	uniform mat4 mv_Mat;\n\
 	uniform mat4 mvpMat;\n\
-	vec4 vecPow(){\n\
-	\n\
-	}\n\
 	void main() {\n\
-		gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+		gl_Position = mvpMat * vec4(in_Position, 1.0);\n\
 		vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
 		vert_wPos = gl_Position;\n\
 		lightPos = vec4(CameraPos, 1.0) + directional_light;\n\
-		lightProjection = ((lightPos - vert_wPos) + (vec4(CameraPos, 1.0) - vert_wPos))/(sqrt(pow(2, (lightPos - vert_wPos)) + (pow(vec4(CameraPos, 1.0) - vert_wPos, 2))));\n\
+		vec4 lightVecPow;\n\
+			lightVecPow.x = pow((lightPos.x - vert_wPos.x), 2);\n\
+			lightVecPow.y = pow((lightPos.y - vert_wPos.y), 2);\n\
+			lightVecPow.z = pow((lightPos.x - vert_wPos.z), 2);\n\
+			lightVecPow.w = pow((lightPos.x - vert_wPos.w), 2);\n\
+		vec4 cameraVecPow;\n\
+			cameraVecPow.x = pow(CameraPos.x - vert_wPos.x, 2);\n\
+			cameraVecPow.y = pow(CameraPos.y - vert_wPos.y, 2);\n\
+			cameraVecPow.z = pow(CameraPos.z - vert_wPos.z, 2);\n\
+			cameraVecPow.w = pow(1.0 - vert_wPos.w, 2);\n\
+		lightProjection = ((lightPos - vert_wPos) + (vec4(CameraPos, 1.0) - vert_wPos))/(sqrt(lightVecPow + (cameraVecPow)));\n\
 }";
 	const char* cube_fragShader =
 		"#version 330\n\
@@ -335,12 +342,13 @@ namespace Cube {
 	uniform vec4 diffuse;\n\
 	uniform vec4 specular;\n\
 	uniform vec4 directional_light;\n\
-	uniform vec4 lightProjection;\n\
+	in vec4 lightProjection;\n\
 	void main() {\n\
 		vec3 rgb =  min(color.rgb * ambient.rgb, vec3(1.0)); \n\
-		out_Color = dot(vert_Normal, normalize(directional_light)) * diffuse * color;\n\
-		out_Color += color * ambient;\n\
-		out_Color += color * specular * (pow(dot(vert_Normal, lightProjection)), 64) * dot(vert_Normal, normalize(directional_light));\n\
+		out_Color = dot(vert_Normal, normalize(directional_light)) * diffuse;\n\
+		out_Color += ambient;\n\
+		//out_Color += specular * (pow(dot(vert_Normal, lightProjection), 250));\n\
+		out_Color *= color;\n\
 }";
 	void setupCube() {
 		glGenVertexArrays(1, &cubeVao);
@@ -438,8 +446,8 @@ namespace Cube {
 		glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 1.f, 1.f, 0.f);
 		glUniform4f(glGetUniformLocation(cubeProgram, "ambient"), Light::lightColor.r * 0.4f, Light::lightColor.g * 0.4f, Light::lightColor.b * 0.4f, 0.0f);
 		glUniform4f(glGetUniformLocation(cubeProgram, "diffuse"), 1.0f, 1.0f, 1.0f, 1.0f);
-		glUniform4f(glGetUniformLocation(cubeProgram, "directional_light"), 1.0f, 0.0f, 0.0f, 1.0f);
-		glUniform3f(glGetUniformLocation(cubeProgram, "CameraPos"), RV::panv[0], RV::panv[1], RV::panv[2]);
+		glUniform4f(glGetUniformLocation(cubeProgram, "directional_light"), 0.0f, 3.0f, 0.0f, 1.0f);
+		glUniform3f(glGetUniformLocation(cubeProgram, "CameraPos"), -RV::panv[0], -RV::panv[1], -RV::panv[2]);
 		glUniform4f(glGetUniformLocation(cubeProgram, "specular"), 1.0f, 1.0f, 1.0f, 1.0f);
 
 
