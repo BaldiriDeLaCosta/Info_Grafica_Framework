@@ -9,6 +9,11 @@
 
 #include "GL_framework.h"
 
+#include <stdio.h>
+#include <stdlib.h>
+#include <vector>
+#include <string>
+
 ///////// fw decl
 namespace ImGui {
 	void Render();
@@ -69,6 +74,7 @@ float vertices[] = {
 	0.5f, -0.5f, 0.0f,
 	0.0f, 0.5f, 0.0f
 };
+
 
 void GLResize(int width, int height) {
 	glViewport(0, 0, width, height);
@@ -300,56 +306,34 @@ namespace Cube {
 		20, 21, 22, 23, UCHAR_MAX
 	};
 
+#pragma region cube_Shaders
 	const char* cube_vertShader =
 		"#version 330\n\
-	in vec3 in_Position;\n\
-	in vec3 in_Normal;\n\
-	out vec4 vert_Normal;\n\
-	out vec4 vert_wPos;\n\
-	out vec4 lightPos;\n\
-	uniform vec3 CameraPos;\n\
-	uniform vec4 directional_light;\n\
-	out vec4 lightProjection;\n\
-	uniform mat4 objMat;\n\
-	uniform mat4 mv_Mat;\n\
-	uniform mat4 mvpMat;\n\
-	void main() {\n\
-		gl_Position = mvpMat * vec4(in_Position, 1.0);\n\
-		vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
-		vert_wPos = gl_Position;\n\
-		lightPos = vec4(CameraPos, 1.0) + directional_light;\n\
-		vec4 lightVecPow;\n\
-			lightVecPow.x = pow((lightPos.x - vert_wPos.x), 2);\n\
-			lightVecPow.y = pow((lightPos.y - vert_wPos.y), 2);\n\
-			lightVecPow.z = pow((lightPos.x - vert_wPos.z), 2);\n\
-			lightVecPow.w = pow((lightPos.x - vert_wPos.w), 2);\n\
-		vec4 cameraVecPow;\n\
-			cameraVecPow.x = pow(CameraPos.x - vert_wPos.x, 2);\n\
-			cameraVecPow.y = pow(CameraPos.y - vert_wPos.y, 2);\n\
-			cameraVecPow.z = pow(CameraPos.z - vert_wPos.z, 2);\n\
-			cameraVecPow.w = pow(1.0 - vert_wPos.w, 2);\n\
-		lightProjection = ((lightPos - vert_wPos) + (vec4(CameraPos, 1.0) - vert_wPos))/(sqrt(lightVecPow + (cameraVecPow)));\n\
-}";
+			in vec3 in_Position;\n\
+			in vec3 in_Normal;\n\
+			out vec4 vert_Normal;\n\
+			uniform mat4 objMat;\n\
+			uniform mat4 mv_Mat;\n\
+			uniform mat4 mvpMat;\n\
+			\n\
+			void main() {\n\
+				gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
+			}";
+
 	const char* cube_fragShader =
-		"#version 330\n\
-	in vec4 vert_Normal;\n\
-	in vec4 vert_wPos;\n\
-	out vec4 lightPos;\n\
-	out vec4 out_Color;\n\
-	uniform vec4 mv_Mat;\n\
-	uniform vec4 color;\n\
-	uniform vec4 ambient;\n\
-	uniform vec4 diffuse;\n\
-	uniform vec4 specular;\n\
-	uniform vec4 directional_light;\n\
-	in vec4 lightProjection;\n\
-	void main() {\n\
-		vec3 rgb =  min(color.rgb * ambient.rgb, vec3(1.0)); \n\
-		out_Color = dot(vert_Normal, normalize(directional_light)) * diffuse;\n\
-		out_Color += ambient;\n\
-		//out_Color += specular * (pow(dot(vert_Normal, lightProjection), 250));\n\
-		out_Color *= color;\n\
-}";
+		"#version 330"
+		"in vec4 vert_Normal;"
+		"out vec4 out_Color;"
+		"uniform mat4 mv_Mat;"
+		"uniform vec4 color;"
+		"uniform vec4 ambient;"
+
+		"void main() {"
+		"out_Color = color * ambient;"
+		"}";
+#pragma endregion
+
 	void setupCube() {
 		glGenVertexArrays(1, &cubeVao);
 		glBindVertexArray(cubeVao);
@@ -461,6 +445,223 @@ namespace Cube {
 
 /////////////////////////////////////////////////
 
+#pragma region Objects
+namespace Objects {
+	std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
+	std::vector< glm::vec3 > temp_vertices;
+	std::vector< glm::vec2 > temp_uvs;
+	std::vector< glm::vec3 > temp_normals;
+
+	std::vector< glm::vec3 > vertices;
+	std::vector< glm::vec2 > uvs;
+	std::vector< glm::vec3 > normals; // Won't be used at the moment.
+
+	GLuint objectVao;
+	GLuint objectVbo[3];
+	GLuint objectShaders[2];
+	GLuint objectProgram;
+
+	bool available = false;
+	bool enabled = true;
+	glm::mat4 objMat = glm::mat4(1.f);
+
+
+#pragma region cubeShaders
+	const char* cube_vertShader =
+		"#version 330\n\
+			in vec3 in_Position;\n\
+			in vec3 in_Normal;\n\
+			out vec4 vert_Normal;\n\
+			uniform mat4 objMat;\n\
+			uniform mat4 mv_Mat;\n\
+			uniform mat4 mvpMat;\n\
+			\n\
+			void main() {\n\
+				gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
+			}";
+
+	const char* cube_fragShader =
+		"#version 330"
+		"in vec4 vert_Normal;"
+		"out vec4 out_Color;"
+		"uniform mat4 mv_Mat;"
+		"uniform vec4 color;"
+		"uniform vec4 ambient;"
+
+		"void main() {"
+		"out_Color = color * ambient;"
+		"}";
+#pragma endregion
+
+	bool loadOBJ(const char* path,
+		std::vector < glm::vec3 >& out_vertices,
+		std::vector < glm::vec2 >& out_uvs,
+		std::vector < glm::vec3 >& out_normals
+	) {
+		FILE* file = fopen(path, "r");
+		if (file == NULL) {
+			printf("Impossible to open the file !\n");
+			return false;
+		}
+
+		while (1) {
+
+			char lineHeader[128];
+			// read the first word of the line
+			int res = fscanf(file, "%s", lineHeader);
+			if (res == EOF) {
+				break; // EOF = End Of File. Quit the loop.
+			}
+
+			if (strcmp(lineHeader, "v") == 0) {
+				glm::vec3 vertex;
+				fscanf(file, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z);
+				temp_vertices.push_back(vertex);
+			}
+			else if (strcmp(lineHeader, "vt") == 0) {
+				glm::vec2 uv;
+				fscanf(file, "%f %f\n", &uv.x, &uv.y);
+				temp_uvs.push_back(uv);
+			}
+			else if (strcmp(lineHeader, "vn") == 0) {
+				glm::vec3 normal;
+				fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
+				temp_normals.push_back(normal);
+			}
+			else if (strcmp(lineHeader, "f") == 0) {
+				std::string vertex1, vertex2, vertex3;
+				unsigned int vertexIndex[3], uvIndex[3], normalIndex[3];
+				int matches = fscanf(file, "%d/%d/%d %d/%d/%d %d/%d/%d\n", &vertexIndex[0], &uvIndex[0], &normalIndex[0], &vertexIndex[1], &uvIndex[1], &normalIndex[1], &vertexIndex[2], &uvIndex[2], &normalIndex[2]);
+				if (matches != 9) {
+					printf("File can't be read by our simple parser : ( Try exporting with other options\n");
+					return false;
+				}
+				vertexIndices.push_back(vertexIndex[0]);
+				vertexIndices.push_back(vertexIndex[1]);
+				vertexIndices.push_back(vertexIndex[2]);
+				uvIndices.push_back(uvIndex[0]);
+				uvIndices.push_back(uvIndex[1]);
+				uvIndices.push_back(uvIndex[2]);
+				normalIndices.push_back(normalIndex[0]);
+				normalIndices.push_back(normalIndex[1]);
+				normalIndices.push_back(normalIndex[2]);
+			}
+
+		}
+
+		// For each vertex of each triangle
+		for (unsigned int i = 0; i < vertexIndices.size(); i++) {
+			// Vertex
+			unsigned int vertexIndex = vertexIndices[i];
+			glm::vec3 vertex = temp_vertices[vertexIndex - 1];
+			out_vertices.push_back(vertex);
+
+			// UV
+			unsigned int uvsIndex = uvIndices[i];
+			glm::vec2 uv = temp_uvs[uvsIndex - 1];
+			out_uvs.push_back(uv);
+
+			// Normal
+			unsigned int normalIndex = normalIndices[i];
+			glm::vec3 normal = temp_normals[normalIndex - 1];
+			out_normals.push_back(normal);
+
+		}
+
+		return true;
+	}
+
+	void setupObject() {
+		available = loadOBJ("resources/dragon.obj.txt", vertices, uvs, normals);
+
+		if (available) {
+			glGenVertexArrays(1, &objectVao);
+			glBindVertexArray(objectVao);
+			glGenBuffers(3, objectVbo);
+
+
+			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[0]);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+			glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+			/*glVertexAttribPointer(
+				0,
+				3,
+				GL_FLOAT,
+				GL_FALSE,
+				3 * sizeof(float),
+				(void*)0);*/
+			glEnableVertexAttribArray(0);
+
+			/*glBindBuffer(GL_ARRAY_BUFFER, objectVbo[1]);
+			glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
+			glVertexAttribPointer((GLuint)1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+			glEnableVertexAttribArray(1);*/
+
+
+			glBindVertexArray(0);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+			
+			objectShaders[0] = compileShader(cube_vertShader, GL_VERTEX_SHADER, "cubeVert");
+			objectShaders[1] = compileShader(cube_fragShader, GL_FRAGMENT_SHADER, "cubeFrag");
+			
+			objectProgram = glCreateProgram();
+			glAttachShader(objectProgram, objectShaders[0]);
+			glAttachShader(objectProgram, objectShaders[1]);
+			glBindAttribLocation(objectProgram, 0, "in_Position");
+			glBindAttribLocation(objectProgram, 1, "in_Normal");
+			linkProgram(objectProgram);
+
+		}
+	}
+
+	void cleanObject() {
+		glDeleteBuffers(3, objectVbo);
+		glDeleteVertexArrays(1, &objectVao);
+
+		glDeleteProgram(objectProgram);
+		glDeleteShader(objectShaders[0]);
+		glDeleteShader(objectShaders[1]);
+	}
+
+	void updateObject(const glm::mat4& transform) {	// Optativo de momento
+		if (available && enabled) {
+			objMat = transform;
+		}
+	}
+	void drawObject() {
+		if (available && enabled) {
+			//glEnable(GL_PRIMITIVE_RESTART);
+			glBindVertexArray(objectVao);
+			glUseProgram(objectProgram);
+			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+			glUniform4f(glGetUniformLocation(objectProgram, "color"), 0.1f, 1.f, 1.f, 0.f);
+			//glDrawElements(GL_TRIANGLE_STRIP, vertices.size(), GL_UNSIGNED_BYTE, 0);
+			glDrawArrays(GL_TRIANGLE_STRIP, vertices[0].x, vertices.size());
+
+			glUseProgram(0);
+			glBindVertexArray(0);
+			//glDisable(GL_PRIMITIVE_RESTART);
+		}
+	}
+
+
+	//bool loadObject() {
+	//	bool res = loadOBJ("resources/cube.obj.txt", vertices, uvs, normals);
+
+	//	//glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+
+	//	return res;
+	//}
+
+}
+#pragma endregion
+
+/////////////////////////////////////////////////
+
 GLuint program;
 GLuint VAO;
 GLuint VBO;
@@ -477,6 +678,8 @@ void GLinit(int width, int height) {
 	// Setup shaders & geometry
 	Axis::setupAxis();
 	Cube::setupCube();
+
+	Objects::setupObject();
 
 	/////////////////////////////////////////////////////TODO
 	GLuint vertex_shader;
@@ -552,7 +755,9 @@ void GLrender(float dt) {
 	RV::_MVP = RV::_projection * RV::_modelView;
 
 	Axis::drawAxis();
-	Cube::drawTwoCubes();
+	//Cube::drawTwoCubes();
+
+	Objects::drawObject();
 
 	//float currentTime = ImGui::GetTime();
 
