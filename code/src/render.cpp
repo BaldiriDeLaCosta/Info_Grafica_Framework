@@ -573,7 +573,7 @@ namespace Objects {
 	}
 
 	void setupObject() {
-		available = loadOBJ("resources/dragon.obj.txt", vertices, uvs, normals);
+		available = loadOBJ("resources/cabinet.obj", vertices, uvs, normals);
 
 		if (available) {
 			glGenVertexArrays(1, &objectVao);
@@ -640,7 +640,7 @@ namespace Objects {
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
 			glUniform4f(glGetUniformLocation(objectProgram, "color"), 0.1f, 1.f, 1.f, 0.f);
 			//glDrawElements(GL_TRIANGLE_STRIP, vertices.size(), GL_UNSIGNED_BYTE, 0);
-			glDrawArrays(GL_TRIANGLE_STRIP, vertices[0].x, vertices.size());
+			glDrawArrays(GL_TRIANGLES, vertices[0].x, vertices.size());
 
 			glUseProgram(0);
 			glBindVertexArray(0);
