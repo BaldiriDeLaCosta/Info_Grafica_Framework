@@ -37,7 +37,7 @@ namespace RenderVars {
 		bool waspressed = false;
 	} prevMouse;
 
-	float panv[3] = { 0.f, -5.f, -15.f };
+	float panv[3] = { 0.f, -0.f, -10.f };
 	float rota[2] = { 0.f, 0.f };
 }
 namespace RV = RenderVars;
@@ -238,6 +238,9 @@ void main() {\n\
 }
 
 ////////////////////////////////////////////////// CUBE
+glm::vec4 viewPos = glm::vec4(0.f, 0.f, 0.f, 1.f);
+glm::vec4 inverse_MV;
+
 namespace Cube {
 	GLuint cubeVao;
 	GLuint cubeVbo[3];
@@ -307,17 +310,17 @@ namespace Cube {
 	out vec4 vert_Normal;\n\
 	out vec4 vert_wPos;\n\
 	out vec4 lightPos;\n\
-	uniform vec3 CameraPos;\n\
+	uniform vec4 CameraPos;\n\
 	uniform vec4 directional_light;\n\
 	out vec4 lightProjection;\n\
 	uniform mat4 objMat;\n\
 	uniform mat4 mv_Mat;\n\
 	uniform mat4 mvpMat;\n\
 	void main() {\n\
-		gl_Position = mvpMat * vec4(in_Position, 1.0);\n\
-		vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
+		gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+		vert_Normal = normalize(mv_Mat * objMat * vec4(in_Normal, 0.0));\n\
 		vert_wPos = gl_Position;\n\
-		lightPos = vec4(CameraPos, 1.0) + directional_light;\n\
+		lightPos = CameraPos + directional_light;\n\
 		vec4 lightVecPow;\n\
 			lightVecPow.x = pow((lightPos.x - vert_wPos.x), 2);\n\
 			lightVecPow.y = pow((lightPos.y - vert_wPos.y), 2);\n\
@@ -327,8 +330,8 @@ namespace Cube {
 			cameraVecPow.x = pow(CameraPos.x - vert_wPos.x, 2);\n\
 			cameraVecPow.y = pow(CameraPos.y - vert_wPos.y, 2);\n\
 			cameraVecPow.z = pow(CameraPos.z - vert_wPos.z, 2);\n\
-			cameraVecPow.w = pow(1.0 - vert_wPos.w, 2);\n\
-		lightProjection = ((lightPos - vert_wPos) + (vec4(CameraPos, 1.0) - vert_wPos))/(sqrt(lightVecPow + (cameraVecPow)));\n\
+			cameraVecPow.w = pow(CameraPos.w - vert_wPos.w, 2);\n\
+		lightProjection = ((lightPos - vert_wPos) + (CameraPos - vert_wPos))/(sqrt(lightVecPow + (cameraVecPow)));\n\
 }";
 	const char* cube_fragShader =
 		"#version 330\n\
@@ -347,7 +350,7 @@ namespace Cube {
 		vec3 rgb =  min(color.rgb * ambient.rgb, vec3(1.0)); \n\
 		out_Color = dot(vert_Normal, normalize(directional_light)) * diffuse;\n\
 		out_Color += ambient;\n\
-		//out_Color += specular * (pow(dot(vert_Normal, lightProjection), 250));\n\
+		out_Color += specular * (pow(dot(vert_Normal, lightProjection), 250));\n\
 		out_Color *= color;\n\
 }";
 	void setupCube() {
@@ -442,12 +445,12 @@ namespace Cube {
 		////la llògica es fa de dreta a esquerra <--
 		//objMat = TranslationMatrix * RotationMatrix * TranslationMatrix2 * ScaleMatrix;
 
-		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+		//glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 		glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 1.f, 1.f, 0.f);
 		glUniform4f(glGetUniformLocation(cubeProgram, "ambient"), Light::lightColor.r * 0.4f, Light::lightColor.g * 0.4f, Light::lightColor.b * 0.4f, 0.0f);
 		glUniform4f(glGetUniformLocation(cubeProgram, "diffuse"), 1.0f, 1.0f, 1.0f, 1.0f);
 		glUniform4f(glGetUniformLocation(cubeProgram, "directional_light"), 0.0f, 3.0f, 0.0f, 1.0f);
-		glUniform3f(glGetUniformLocation(cubeProgram, "CameraPos"), -RV::panv[0], -RV::panv[1], -RV::panv[2]);
+		glUniform4f(glGetUniformLocation(cubeProgram, "CameraPos"), RV::_cameraPoint.x, RV::_cameraPoint.y, RV::_cameraPoint.z, RV::_cameraPoint.w);
 		glUniform4f(glGetUniformLocation(cubeProgram, "specular"), 1.0f, 1.0f, 1.0f, 1.0f);
 
 
@@ -548,6 +551,8 @@ void GLrender(float dt) {
 	RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
 	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
 	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
+
+	//inverse_MV = glm::inverse(RV::_modelView) * viewPos;
 
 	RV::_MVP = RV::_projection * RV::_modelView;
 
