@@ -28,7 +28,7 @@ namespace Axis {
 namespace RenderVars {
 	const float FOV = glm::radians(65.f);
 	const float zNear = 1.f;
-	const float zFar = 50.f;
+	const float zFar = 500.f;
 
 	glm::mat4 _projection;
 	glm::mat4 _modelView;
@@ -573,7 +573,7 @@ namespace Objects {
 	}
 
 	void setupObject() {
-		available = loadOBJ("resources/cabinet.obj", vertices, uvs, normals);
+		available = loadOBJ("resources/Fancy_Table.obj.txt", vertices, uvs, normals);
 
 		if (available) {
 			glGenVertexArrays(1, &objectVao);
