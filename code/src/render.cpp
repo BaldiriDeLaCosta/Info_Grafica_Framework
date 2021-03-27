@@ -445,8 +445,11 @@ namespace Cube {
 
 /////////////////////////////////////////////////
 
-#pragma region Objects
-namespace Objects {
+#pragma region Object
+class Object {
+public:
+	static enum class Type { DRAGON, CUBE, COUNT };
+	
 	std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
 	std::vector< glm::vec3 > temp_vertices;
 	std::vector< glm::vec2 > temp_uvs;
@@ -464,6 +467,7 @@ namespace Objects {
 	bool available = false;
 	bool enabled = true;
 	glm::mat4 objMat = glm::mat4(1.f);
+	glm::vec3 initPos;
 
 
 #pragma region cubeShaders
@@ -475,23 +479,54 @@ namespace Objects {
 			uniform mat4 objMat;\n\
 			uniform mat4 mv_Mat;\n\
 			uniform mat4 mvpMat;\n\
-			\n\
+			out vec4 Normal;\n\
+			out vec4 LightPos;\n\
+			out vec4 FragPos;\n\
+			uniform vec4 lightPos;\n\
+			uniform mat4 model;\n\
+			uniform mat4 view;\n\
+			uniform mat4 projection;\n\
 			void main() {\n\
 				gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
 				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
-			}";
+				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
+				LightPos = mvpMat * lightPos;\n\
+				FragPos = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+		}";
 
 	const char* cube_fragShader =
-		"#version 330"
-		"in vec4 vert_Normal;"
-		"out vec4 out_Color;"
-		"uniform mat4 mv_Mat;"
-		"uniform vec4 color;"
-		"uniform vec4 ambient;"
-
-		"void main() {"
-		"out_Color = color * ambient;"
-		"}";
+		"#version 330\n\
+			in vec4 vert_Normal;\n\
+			in vec4 Normal;\n\
+			in vec4 FragPos;\n\
+			out vec4 out_Color;\n\
+			uniform mat4 mv_Mat;\n\
+			uniform vec4 lightPos;\n\
+			uniform vec4 viewPos;\n\
+			uniform vec4 lightColor;\n\
+			uniform vec4 objectColor;\n\
+			void main() {\n\
+				////////////////// -Ambient\n\
+				float ambientStrength = 0.2f;\n\
+				vec4 ambient = ambientStrength * lightColor;\n\
+				////////////////// -Diffuse\n\
+				vec4 normalizedNormal = normalize(Normal);\n\
+				vec4 lightDir = normalize(lightPos - FragPos);\n\
+				float diffWithoutColor = max(dot(normalizedNormal, lightDir), 0.0f);\n\
+				vec4 diffuse = diffWithoutColor * lightColor;\n\
+				////////////////// -Specular\n\
+				float specularStrength = 1.0f;\n\
+				vec4 viewDir = normalize(viewPos - FragPos);\n\
+				vec4 reflectDir = reflect(-lightDir, normalizedNormal);\n\
+				float specWithoutColor = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n\
+				vec4 specular = specularStrength * specWithoutColor * lightColor;\n\
+				////////////////// -Result\n\
+				vec4 result = ambient;\n\
+				result += diffuse;\n\
+				result += specular;\n\
+				result *= objectColor;\n\
+				out_Color = result;\n\
+		}";
 #pragma endregion
 
 	bool loadOBJ(const char* path,
@@ -572,8 +607,20 @@ namespace Objects {
 		return true;
 	}
 
-	void setupObject() {
-		available = loadOBJ("resources/cube.obj.txt", vertices, uvs, normals);
+	void setupObject(Type _type, glm::vec3 _initPos) {
+		switch (_type) {
+		case Type::DRAGON:
+			available = loadOBJ("resources/dragon.obj.txt", vertices, uvs, normals);
+			break;
+		case Type::CUBE:
+			available = loadOBJ("resources/cube.obj.txt", vertices, uvs, normals);
+			break;
+
+		default:;
+
+		}
+		initPos = _initPos;
+		//glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(glm::translate(glm::mat4(), _initPos)));
 
 		if (available) {
 			glGenVertexArrays(1, &objectVao);
@@ -593,10 +640,10 @@ namespace Objects {
 				(void*)0);*/
 			glEnableVertexAttribArray(0);
 
-			/*glBindBuffer(GL_ARRAY_BUFFER, objectVbo[1]);
+			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[1]);
 			glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
 			glVertexAttribPointer((GLuint)1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
-			glEnableVertexAttribArray(1);*/
+			glEnableVertexAttribArray(1);
 
 
 			glBindVertexArray(0);
@@ -627,18 +674,28 @@ namespace Objects {
 
 	void updateObject(const glm::mat4& transform) {	// Optativo de momento
 		if (available && enabled) {
+			glUseProgram(objectProgram);
 			objMat = transform;
+			glUseProgram(0);
 		}
 	}
 	void drawObject() {
 		if (available && enabled) {
+			
 			//glEnable(GL_PRIMITIVE_RESTART);
 			glBindVertexArray(objectVao);
 			glUseProgram(objectProgram);
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
-			glUniform4f(glGetUniformLocation(objectProgram, "color"), 0.1f, 1.f, 1.f, 0.f);
+			glUniform4f(glGetUniformLocation(objectProgram, "color"), 1.f, 0.1f, 1.f, 0.f);
+			glUniform4f(glGetUniformLocation(objectProgram, "objectColor"), 1.f, 1.0f, 1.0f, 0.0f);
+			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), 0.0f, 1.0f, 0.0f, 1.0f);
+			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), 0.f, 0.f, -10.f, 0.0f);
+			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::_cameraPoint.x, RV::_cameraPoint.y, RV::_cameraPoint.z, 0);
+
+			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(glm::translate(glm::mat4(), initPos)));
+
 			//glDrawElements(GL_TRIANGLE_STRIP, vertices.size(), GL_UNSIGNED_BYTE, 0);
 			glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
 
@@ -648,7 +705,6 @@ namespace Objects {
 		}
 	}
 
-
 	//bool loadObject() {
 	//	bool res = loadOBJ("resources/cube.obj.txt", vertices, uvs, normals);
 
@@ -657,7 +713,7 @@ namespace Objects {
 	//	return res;
 	//}
 
-}
+};
 #pragma endregion
 
 /////////////////////////////////////////////////
@@ -665,6 +721,9 @@ namespace Objects {
 GLuint program;
 GLuint VAO;
 GLuint VBO;
+
+Object obj1;
+
 void GLinit(int width, int height) {
 	glViewport(0, 0, width, height);
 	glClearColor(0.2f, 0.2f, 0.2f, 1.f);
@@ -679,7 +738,7 @@ void GLinit(int width, int height) {
 	Axis::setupAxis();
 	Cube::setupCube();
 
-	Objects::setupObject();
+	obj1.setupObject(Object::Type::DRAGON, glm::vec3(0, 20, 0));
 
 	/////////////////////////////////////////////////////TODO
 	GLuint vertex_shader;
@@ -757,7 +816,7 @@ void GLrender(float dt) {
 	Axis::drawAxis();
 	//Cube::drawTwoCubes();
 
-	Objects::drawObject();
+	obj1.drawObject();
 
 	//float currentTime = ImGui::GetTime();
 
