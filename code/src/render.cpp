@@ -26,7 +26,7 @@ namespace Axis {
 ////////////////
 
 namespace RenderVars {
-	const float FOV = glm::radians(65.f);
+	float FOV = glm::radians(65.f);
 	const float zNear = 1.f;
 	const float zFar = 500.f;
 
@@ -42,7 +42,7 @@ namespace RenderVars {
 		bool waspressed = false;
 	} prevMouse;
 
-	float panv[3] = { 0.f, -5.f, -15.f };
+	float panv[3] = { 0.f, -5.f, -16.f };
 	float rota[2] = { 0.f, 0.f };
 }
 namespace RV = RenderVars;
@@ -468,6 +468,8 @@ public:
 	bool enabled = true;
 	glm::mat4 objMat = glm::mat4(1.f);
 	glm::vec3 initPos;
+	glm::vec3 modelSize;
+	glm::vec4 objectColor;
 
 
 #pragma region cubeShaders
@@ -607,7 +609,7 @@ public:
 		return true;
 	}
 
-	void setupObject(Type _type, glm::vec3 _initPos) {
+	void setupObject(Type _type, glm::vec3 _initPos = glm::vec3(0.f, 0.f, 0.f), glm::vec3 _modelSize = glm::vec3(1.f, 1.f, 1.f), glm::vec4 _objectColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f)) {
 		switch (_type) {
 		case Type::DRAGON:
 			available = loadOBJ("resources/dragon.obj.txt", vertices, uvs, normals);
@@ -620,6 +622,8 @@ public:
 
 		}
 		initPos = _initPos;
+		modelSize = _modelSize;
+		objectColor = _objectColor;
 		//glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(glm::translate(glm::mat4(), _initPos)));
 
 		if (available) {
@@ -689,12 +693,19 @@ public:
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
 			glUniform4f(glGetUniformLocation(objectProgram, "color"), 1.f, 0.1f, 1.f, 0.f);
-			glUniform4f(glGetUniformLocation(objectProgram, "objectColor"), 1.f, 1.0f, 1.0f, 0.0f);
-			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), 0.0f, 1.0f, 0.0f, 1.0f);
+			glUniform4f(glGetUniformLocation(objectProgram, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
+			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), 1.0f, 1.0f, 1.0f, 1.0f);
 			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), 0.f, 0.f, -10.f, 0.0f);
-			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::_cameraPoint.x, RV::_cameraPoint.y, RV::_cameraPoint.z, 0);
+			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
+			printf("%f \n", RV::panv[2]);
 
-			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(glm::translate(glm::mat4(), initPos)));
+			//glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(glm::scale(glm::mat4(), modelSize)));
+			//glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(glm::translate(glm::mat4(), initPos)));
+			objMat = glm::translate(glm::mat4(), initPos) * glm::scale(glm::mat4(), modelSize);
+			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			//Les operacions amb matrius es fan d'esquerra a dreta -->
+			//la llògica es fa de dreta a esquerra <--
+			//objMat = TranslationMatrix * RotationMatrix * TranslationMatrix2 * ScaleMatrix;
 
 			//glDrawElements(GL_TRIANGLE_STRIP, vertices.size(), GL_UNSIGNED_BYTE, 0);
 			glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
@@ -722,7 +733,10 @@ GLuint program;
 GLuint VAO;
 GLuint VBO;
 
-Object obj1;
+Object babyDragon;
+Object mommyDragon;
+Object daddyDragon;
+Object ground;
 
 void GLinit(int width, int height) {
 	glViewport(0, 0, width, height);
@@ -738,7 +752,10 @@ void GLinit(int width, int height) {
 	Axis::setupAxis();
 	Cube::setupCube();
 
-	obj1.setupObject(Object::Type::DRAGON, glm::vec3(0, 20, 0));
+	babyDragon.setupObject(Object::Type::DRAGON, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
+	mommyDragon.setupObject(Object::Type::DRAGON, glm::vec3(-20.0f, 0.0f, -20.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
+	daddyDragon.setupObject(Object::Type::DRAGON, glm::vec3(20.0f, 0.0f, -20.0f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
+	ground.setupObject(Object::Type::CUBE, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
 
 	/////////////////////////////////////////////////////TODO
 	GLuint vertex_shader;
@@ -802,6 +819,12 @@ void GLcleanup() {
 	// ...
 	/////////////////////////////////////////////////////////
 }
+bool dollyEffectActive = true;
+void InverseDollyEffect()
+{
+	float width = 4.f;
+	RV::FOV = 2 * glm::atan((1 / 2) * width / (RV::panv[2] - 5.f));
+}
 
 void GLrender(float dt) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
@@ -813,10 +836,16 @@ void GLrender(float dt) {
 
 	RV::_MVP = RV::_projection * RV::_modelView;
 
+	if(dollyEffectActive)
+		InverseDollyEffect();
+
 	Axis::drawAxis();
 	//Cube::drawTwoCubes();
 
-	obj1.drawObject();
+	babyDragon.drawObject();
+	mommyDragon.drawObject();
+	daddyDragon.drawObject();
+	ground.drawObject();
 
 	//float currentTime = ImGui::GetTime();
 
@@ -842,15 +871,11 @@ void GLrender(float dt) {
 void GUI() {
 	bool show = true;
 	ImGui::Begin("Physics Parameters", &show, 0);
-
+	//
 	{
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
-
 		/////////////////////////////////////////////////////TODO
-		// Do your GUI code here....
-		// ...
-		// ...
-		// ...
+		ImGui::SliderFloat("Camera Z Position", &RV::panv[2], -16.f, -6.f);
 		/////////////////////////////////////////////////////////
 	}
 	// .........................
