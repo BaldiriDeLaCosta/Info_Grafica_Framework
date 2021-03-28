@@ -143,7 +143,8 @@ void linkProgram(GLuint program) {
 ///////////////////////////////////////////////// LIGHT SOURCE
 namespace Light
 {
-	glm::vec4 lightColor = glm::vec4(1.f, 1.f, 1.f, 0.f);
+	glm::vec4 lightColor = glm::vec4(1.f, 1.f, 1.f, 1.f);
+	glm::vec4 lightPosition = glm::vec4(0.f, 5.f, -10.f, 0.0f);
 }
 
 ////////////////////////////////////////////////// AXIS
@@ -444,7 +445,6 @@ namespace Cube {
 }
 
 /////////////////////////////////////////////////
-
 #pragma region Object
 class Object {
 public:
@@ -468,6 +468,8 @@ public:
 	bool enabled = true;
 	glm::mat4 objMat = glm::mat4(1.f);
 	glm::vec3 initPos;
+	float rotation;
+	glm::vec3 rotationAxis;
 	glm::vec3 modelSize;
 	glm::vec4 objectColor;
 
@@ -485,15 +487,12 @@ public:
 			out vec4 LightPos;\n\
 			out vec4 FragPos;\n\
 			uniform vec4 lightPos;\n\
-			uniform mat4 model;\n\
-			uniform mat4 view;\n\
-			uniform mat4 projection;\n\
 			void main() {\n\
 				gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
 				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
 				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
-				LightPos = mvpMat * lightPos;\n\
-				FragPos = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+				LightPos = mv_Mat * lightPos;\n\
+				FragPos = objMat * vec4(in_Position, 1.0);\n\
 		}";
 
 	const char* cube_fragShader =
@@ -609,7 +608,7 @@ public:
 		return true;
 	}
 
-	void setupObject(Type _type, glm::vec3 _initPos = glm::vec3(0.f, 0.f, 0.f), glm::vec3 _modelSize = glm::vec3(1.f, 1.f, 1.f), glm::vec4 _objectColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f)) {
+	void setupObject(Type _type, glm::vec3 _initPos = glm::vec3(0.f, 0.f, 0.f), float _rotation = 0.0f, glm::vec3 _rotationAxis = glm::vec3(1.f, 1.f, 1.f), glm::vec3 _modelSize = glm::vec3(1.f, 1.f, 1.f), glm::vec4 _objectColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f)) {
 		switch (_type) {
 		case Type::DRAGON:
 			available = loadOBJ("resources/dragon.obj.txt", vertices, uvs, normals);
@@ -624,6 +623,8 @@ public:
 		initPos = _initPos;
 		modelSize = _modelSize;
 		objectColor = _objectColor;
+		rotation = _rotation;
+		rotationAxis = _rotationAxis;
 		//glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(glm::translate(glm::mat4(), _initPos)));
 
 		if (available) {
@@ -685,8 +686,6 @@ public:
 	}
 	void drawObject() {
 		if (available && enabled) {
-			
-			//glEnable(GL_PRIMITIVE_RESTART);
 			glBindVertexArray(objectVao);
 			glUseProgram(objectProgram);
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
@@ -695,24 +694,38 @@ public:
 			glUniform4f(glGetUniformLocation(objectProgram, "color"), 1.f, 0.1f, 1.f, 0.f);
 			glUniform4f(glGetUniformLocation(objectProgram, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
 			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), 1.0f, 1.0f, 1.0f, 1.0f);
-			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), 0.f, 0.f, -10.f, 0.0f);
+			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
 			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
-			printf("%f \n", RV::panv[2]);
 
-			//glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(glm::scale(glm::mat4(), modelSize)));
-			//glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(glm::translate(glm::mat4(), initPos)));
-			objMat = glm::translate(glm::mat4(), initPos) * glm::scale(glm::mat4(), modelSize);
+			objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
-			//Les operacions amb matrius es fan d'esquerra a dreta -->
-			//la llògica es fa de dreta a esquerra <--
-			//objMat = TranslationMatrix * RotationMatrix * TranslationMatrix2 * ScaleMatrix;
 
-			//glDrawElements(GL_TRIANGLE_STRIP, vertices.size(), GL_UNSIGNED_BYTE, 0);
 			glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
 
 			glUseProgram(0);
 			glBindVertexArray(0);
-			//glDisable(GL_PRIMITIVE_RESTART);
+		}
+	}
+	void drawObject(glm::vec3 currentPos) {
+		if (available && enabled) {
+			glBindVertexArray(objectVao);
+			glUseProgram(objectProgram);
+			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+			glUniform4f(glGetUniformLocation(objectProgram, "color"), 1.f, 0.1f, 1.f, 0.f);
+			glUniform4f(glGetUniformLocation(objectProgram, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
+			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), 1.0f, 1.0f, 1.0f, 1.0f);
+			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
+			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
+
+			objMat = glm::translate(glm::mat4(), currentPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
+			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+
+			glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
+
+			glUseProgram(0);
+			glBindVertexArray(0);
 		}
 	}
 
@@ -734,9 +747,12 @@ GLuint VAO;
 GLuint VBO;
 
 Object babyDragon;
+Object brotherDragon;
+Object sisterDragon;
 Object mommyDragon;
 Object daddyDragon;
 Object ground;
+Object light;
 
 void GLinit(int width, int height) {
 	glViewport(0, 0, width, height);
@@ -752,10 +768,13 @@ void GLinit(int width, int height) {
 	Axis::setupAxis();
 	Cube::setupCube();
 
-	babyDragon.setupObject(Object::Type::DRAGON, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
-	mommyDragon.setupObject(Object::Type::DRAGON, glm::vec3(-20.0f, 0.0f, -20.0f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
-	daddyDragon.setupObject(Object::Type::DRAGON, glm::vec3(20.0f, 0.0f, -20.0f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
-	ground.setupObject(Object::Type::CUBE, glm::vec3(0.0f, -1.0f, 0.0f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
+	babyDragon.setupObject(Object::Type::DRAGON, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
+	brotherDragon.setupObject(Object::Type::DRAGON, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
+	sisterDragon.setupObject(Object::Type::DRAGON, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
+	mommyDragon.setupObject(Object::Type::DRAGON, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
+	daddyDragon.setupObject(Object::Type::DRAGON, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
+	ground.setupObject(Object::Type::CUBE, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
+	light.setupObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
 
 	/////////////////////////////////////////////////////TODO
 	GLuint vertex_shader;
@@ -822,12 +841,18 @@ void GLcleanup() {
 bool dollyEffectActive = true;
 void InverseDollyEffect()
 {
-	float width = 4.f;
-	RV::FOV = 2 * glm::atan((1 / 2) * width / (RV::panv[2] - 5.f));
+	float width = 16.f;
+	RV::FOV =2.f * glm::atan(0.5f * width / glm::abs(RV::panv[2] + 0.5f));
 }
 
 void GLrender(float dt) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	if (dollyEffectActive)
+		InverseDollyEffect();
+	else
+		RV::FOV = glm::radians(65.f);
+	RV::_projection = glm::perspective(RV::FOV, (float)800 / (float)600, RV::zNear, RV::zFar);
 
 	RV::_modelView = glm::mat4(1.f);
 	RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
@@ -836,16 +861,16 @@ void GLrender(float dt) {
 
 	RV::_MVP = RV::_projection * RV::_modelView;
 
-	if(dollyEffectActive)
-		InverseDollyEffect();
-
 	Axis::drawAxis();
 	//Cube::drawTwoCubes();
 
 	babyDragon.drawObject();
+	brotherDragon.drawObject();
+	sisterDragon.drawObject();
 	mommyDragon.drawObject();
 	daddyDragon.drawObject();
 	ground.drawObject();
+	light.drawObject(glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z));
 
 	//float currentTime = ImGui::GetTime();
 
@@ -875,7 +900,11 @@ void GUI() {
 	{
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		/////////////////////////////////////////////////////TODO
-		ImGui::SliderFloat("Camera Z Position", &RV::panv[2], -16.f, -6.f);
+		ImGui::Checkbox("Dolly Effect", &dollyEffectActive);
+		ImGui::SliderFloat("Dolly Effect Slider", &RV::panv[2], -16.f, -6.f);
+		ImGui::SliderFloat("Light X Position", &Light::lightPosition.x, -20.f, 20.f);
+		ImGui::SliderFloat("Light Y Position", &Light::lightPosition.y, -20.f, 20.f);
+		ImGui::SliderFloat("Light Z Position", &Light::lightPosition.z, -20.f, 20.f);
 		/////////////////////////////////////////////////////////
 	}
 	// .........................
