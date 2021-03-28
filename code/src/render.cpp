@@ -685,7 +685,7 @@ public:
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
 			glUniform4f(glGetUniformLocation(objectProgram, "color"), 1.f, 0.1f, 1.f, 0.f);
 			glUniform4f(glGetUniformLocation(objectProgram, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
-			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), 1.0f, 1.0f, 1.0f, 1.0f);
+			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f);
 			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
 			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
 
