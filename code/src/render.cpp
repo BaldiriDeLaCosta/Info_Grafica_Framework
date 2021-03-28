@@ -448,6 +448,7 @@ namespace Cube {
 #pragma region Object
 class Object {
 public:
+	//Enum class for diferent object models
 	static enum class Type { DRAGON, CUBE, COUNT };
 	
 	std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
@@ -464,6 +465,7 @@ public:
 	GLuint objectShaders[2];
 	GLuint objectProgram;
 
+	//Setup Variables
 	bool available = false;
 	bool enabled = true;
 	glm::mat4 objMat = glm::mat4(1.f);
@@ -475,6 +477,7 @@ public:
 
 
 #pragma region cubeShaders
+	//Vertex Shader for the objects
 	const char* cube_vertShader =
 		"#version 330\n\
 			in vec3 in_Position;\n\
@@ -495,6 +498,7 @@ public:
 				FragPos = objMat * vec4(in_Position, 1.0);\n\
 		}";
 
+	//Fragment Shader for the objects
 	const char* cube_fragShader =
 		"#version 330\n\
 			in vec4 vert_Normal;\n\
@@ -535,6 +539,7 @@ public:
 		std::vector < glm::vec2 >& out_uvs,
 		std::vector < glm::vec3 >& out_normals
 	) {
+		//Checker for the file being open
 		FILE* file = fopen(path, "r");
 		if (file == NULL) {
 			printf("Impossible to open the file !\n");
@@ -550,16 +555,19 @@ public:
 				break; // EOF = End Of File. Quit the loop.
 			}
 
+			//reading of vertex
 			if (strcmp(lineHeader, "v") == 0) {
 				glm::vec3 vertex;
 				fscanf(file, "%f %f %f\n", &vertex.x, &vertex.y, &vertex.z);
 				temp_vertices.push_back(vertex);
 			}
+			//reading for uv
 			else if (strcmp(lineHeader, "vt") == 0) {
 				glm::vec2 uv;
 				fscanf(file, "%f %f\n", &uv.x, &uv.y);
 				temp_uvs.push_back(uv);
 			}
+			//reading for normals
 			else if (strcmp(lineHeader, "vn") == 0) {
 				glm::vec3 normal;
 				fscanf(file, "%f %f %f\n", &normal.x, &normal.y, &normal.z);
@@ -608,7 +616,9 @@ public:
 		return true;
 	}
 
+	//Setup function for objects
 	void setupObject(Type _type, glm::vec3 _initPos = glm::vec3(0.f, 0.f, 0.f), float _rotation = 0.0f, glm::vec3 _rotationAxis = glm::vec3(1.f, 1.f, 1.f), glm::vec3 _modelSize = glm::vec3(1.f, 1.f, 1.f), glm::vec4 _objectColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f)) {
+		//Model loading depending on the passed parameter
 		switch (_type) {
 		case Type::DRAGON:
 			available = loadOBJ("resources/dragon.obj.txt", vertices, uvs, normals);
@@ -669,13 +679,15 @@ public:
 		glDeleteShader(objectShaders[1]);
 	}
 
-	void updateObject(const glm::mat4& transform) {	// Optativo de momento
-		if (available && enabled) {
-			glUseProgram(objectProgram);
-			objMat = transform;
-			glUseProgram(0);
-		}
-	}
+	//void updateObject(const glm::mat4& transform) {
+	//	if (available && enabled) {
+	//		glUseProgram(objectProgram);
+	//		objMat = transform;
+	//		glUseProgram(0);
+	//	}
+	//}
+
+	//Object drawing function
 	void drawObject() {
 		if (available && enabled) {
 			glBindVertexArray(objectVao);
@@ -689,6 +701,7 @@ public:
 			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
 			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
 
+			//objMat matrix modify
 			objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 
@@ -698,6 +711,7 @@ public:
 			glBindVertexArray(0);
 		}
 	}
+	//Object drawing function with position & light color to update them at GLrender()
 	void drawObject(glm::vec3 currentPos, glm::vec4 _lightColor) {
 		if (available && enabled) {
 			glBindVertexArray(objectVao);
@@ -710,6 +724,7 @@ public:
 			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
 			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
 
+			//objMat matrix modify
 			objMat = glm::translate(glm::mat4(), currentPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 
@@ -728,6 +743,7 @@ GLuint program;
 GLuint VAO;
 GLuint VBO;
 
+//Objects declaration
 Object babyDragon;
 Object brotherDragon;
 Object sisterDragon;
@@ -747,9 +763,10 @@ void GLinit(int width, int height) {
 	RV::_projection = glm::perspective(RV::FOV, (float)width / (float)height, RV::zNear, RV::zFar);
 
 	// Setup shaders & geometry
-	Axis::setupAxis();
-	Cube::setupCube();
+	//Axis::setupAxis();
+	//Cube::setupCube();
 
+	//Objects inicialization
 	babyDragon.setupObject(Object::Type::DRAGON, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
 	brotherDragon.setupObject(Object::Type::DRAGON, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
 	sisterDragon.setupObject(Object::Type::DRAGON, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
@@ -823,6 +840,7 @@ void GLcleanup() {
 bool dollyEffectActive = true;
 void InverseDollyEffect()
 {
+	//Function to change the Field of View depending on the distance to the focus point & to the width of the scene
 	float width = 16.f;
 	RV::FOV =2.f * glm::atan(0.5f * width / glm::abs(RV::panv[2] + 0.5f));
 }
@@ -830,12 +848,15 @@ void InverseDollyEffect()
 void GLrender(float dt) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	//Dolly effect
 	if (dollyEffectActive)
 		InverseDollyEffect();
 	else
 		RV::FOV = glm::radians(65.f);
+	//Update of the perspective view for the dolly effect
 	RV::_projection = glm::perspective(RV::FOV, (float)800 / (float)600, RV::zNear, RV::zFar);
 
+	//Setting of the camera
 	RV::_modelView = glm::mat4(1.f);
 	RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
 	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
@@ -843,6 +864,7 @@ void GLrender(float dt) {
 
 	RV::_MVP = RV::_projection * RV::_modelView;
 
+	//Drawing of the scene objects
 	babyDragon.drawObject();
 	brotherDragon.drawObject();
 	sisterDragon.drawObject();
@@ -861,11 +883,14 @@ void GUI() {
 	{
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		/////////////////////////////////////////////////////TODO
+		//Dolly effect checkbox & slider
 		ImGui::Checkbox("Dolly Effect", &dollyEffectActive);
 		ImGui::SliderFloat("Dolly Effect Slider", &RV::panv[2], -16.f, -6.f);
+		//Light position slider modifiers
 		ImGui::SliderFloat("Light X Position", &Light::lightPosition.x, -20.f, 20.f);
 		ImGui::SliderFloat("Light Y Position", &Light::lightPosition.y, -20.f, 20.f);
 		ImGui::SliderFloat("Light Z Position", &Light::lightPosition.z, -20.f, 20.f);
+		//Light color slider modifiers
 		ImGui::SliderFloat("Light R Color", &Light::lightColor.r, 0.f, 1.f);
 		ImGui::SliderFloat("Light G Color", &Light::lightColor.g, 0.f, 1.f);
 		ImGui::SliderFloat("Light B Color", &Light::lightColor.b, 0.f, 1.f);
