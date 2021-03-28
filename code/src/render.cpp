@@ -625,7 +625,6 @@ public:
 		objectColor = _objectColor;
 		rotation = _rotation;
 		rotationAxis = _rotationAxis;
-		//glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(glm::translate(glm::mat4(), _initPos)));
 
 		if (available) {
 			glGenVertexArrays(1, &objectVao);
@@ -636,13 +635,6 @@ public:
 			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[0]);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
 			glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-			/*glVertexAttribPointer(
-				0,
-				3,
-				GL_FLOAT,
-				GL_FALSE,
-				3 * sizeof(float),
-				(void*)0);*/
 			glEnableVertexAttribArray(0);
 
 			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[1]);
@@ -706,16 +698,15 @@ public:
 			glBindVertexArray(0);
 		}
 	}
-	void drawObject(glm::vec3 currentPos) {
+	void drawObject(glm::vec3 currentPos, glm::vec4 _lightColor) {
 		if (available && enabled) {
 			glBindVertexArray(objectVao);
 			glUseProgram(objectProgram);
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
-			glUniform4f(glGetUniformLocation(objectProgram, "color"), 1.f, 0.1f, 1.f, 0.f);
 			glUniform4f(glGetUniformLocation(objectProgram, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
-			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), 1.0f, 1.0f, 1.0f, 1.0f);
+			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), _lightColor.r, _lightColor.g, _lightColor.b, 1.0f);
 			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
 			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
 
@@ -728,15 +719,6 @@ public:
 			glBindVertexArray(0);
 		}
 	}
-
-	//bool loadObject() {
-	//	bool res = loadOBJ("resources/cube.obj.txt", vertices, uvs, normals);
-
-	//	//glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
-
-	//	return res;
-	//}
-
 };
 #pragma endregion
 
@@ -861,34 +843,13 @@ void GLrender(float dt) {
 
 	RV::_MVP = RV::_projection * RV::_modelView;
 
-	Axis::drawAxis();
-	//Cube::drawTwoCubes();
-
 	babyDragon.drawObject();
 	brotherDragon.drawObject();
 	sisterDragon.drawObject();
 	mommyDragon.drawObject();
 	daddyDragon.drawObject();
 	ground.drawObject();
-	light.drawObject(glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z));
-
-	//float currentTime = ImGui::GetTime();
-
-	//const GLfloat color[] = { (float)sin(currentTime) * 0.5f + 0.5f, (float)cos(currentTime) * 0.5f + 0.5f, 0.0f, 1.0f };
-	//glClearBufferfv(GL_COLOR, 0, color);
-
-	//GLuint unifLocation = glGetUniformLocation(program, "aCol");
-	//glUniform4f(unifLocation, (float)sin(currentTime) * 0.5f + 0.5f, (float)cos(currentTime) * 0.5f + 0.5f, 0.0f, 1.0f);
-	//		
-	//glUseProgram(program);
-	//glPointSize(40.0f);
-	//glBindVertexArray(VAO);
-	//glDrawArrays(GL_TRIANGLES, 0, 3);
-
-	/////////////////////////////////////////////////////TODO
-	// Do your render code here
-
-	/////////////////////////////////////////////////////////
+	light.drawObject(glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4( Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
 
 	ImGui::Render();
 }
@@ -905,6 +866,9 @@ void GUI() {
 		ImGui::SliderFloat("Light X Position", &Light::lightPosition.x, -20.f, 20.f);
 		ImGui::SliderFloat("Light Y Position", &Light::lightPosition.y, -20.f, 20.f);
 		ImGui::SliderFloat("Light Z Position", &Light::lightPosition.z, -20.f, 20.f);
+		ImGui::SliderFloat("Light R Color", &Light::lightColor.r, 0.f, 1.f);
+		ImGui::SliderFloat("Light G Color", &Light::lightColor.g, 0.f, 1.f);
+		ImGui::SliderFloat("Light B Color", &Light::lightColor.b, 0.f, 1.f);
 		/////////////////////////////////////////////////////////
 	}
 	// .........................
