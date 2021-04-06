@@ -13,6 +13,11 @@
 #include <stdlib.h>
 #include <vector>
 #include <string>
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
+
+int x, y, n;
+unsigned char* data;
 
 ///////// fw decl
 namespace ImGui {
@@ -464,6 +469,7 @@ public:
 	GLuint objectVbo[3];
 	GLuint objectShaders[2];
 	GLuint objectProgram;
+	GLuint textureID;
 
 	//Setup Variables
 	bool available = false;
@@ -474,6 +480,9 @@ public:
 	glm::vec3 rotationAxis;
 	glm::vec3 modelSize;
 	glm::vec4 objectColor;
+
+
+
 
 
 #pragma region cubeShaders
@@ -637,6 +646,14 @@ public:
 		rotationAxis = _rotationAxis;
 
 		if (available) {
+			data = stbi_load("resources/Sun.png", &x, &y, &n, 1);
+			//stbi_image_free(data);
+			glGenTextures(1, &textureID); // Create the handle of the texture
+			glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 558, 558, 0, GL_RGBA, GL_INT, data); //Load the data
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, 0); //Configure some parameters
+			
+
 			glGenVertexArrays(1, &objectVao);
 			glBindVertexArray(objectVao);
 			glGenBuffers(3, objectVbo);
@@ -677,6 +694,7 @@ public:
 		glDeleteProgram(objectProgram);
 		glDeleteShader(objectShaders[0]);
 		glDeleteShader(objectShaders[1]);
+		glDeleteTextures(1, &textureID);
 	}
 
 	//void updateObject(const glm::mat4& transform) {
