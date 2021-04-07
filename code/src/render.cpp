@@ -513,12 +513,14 @@ public:
 			in vec4 vert_Normal;\n\
 			in vec4 Normal;\n\
 			in vec4 FragPos;\n\
+			in vec2 uvs;\n\
 			out vec4 out_Color;\n\
 			uniform mat4 mv_Mat;\n\
 			uniform vec4 lightPos;\n\
 			uniform vec4 viewPos;\n\
 			uniform vec4 lightColor;\n\
 			uniform vec4 objectColor;\n\
+			uniform sampler2D diffuseTexture;\n\
 			void main() {\n\
 				////////////////// -Ambient\n\
 				float ambientStrength = 0.2f;\n\
@@ -537,9 +539,10 @@ public:
 				////////////////// -Result\n\
 				vec4 result = ambient;\n\
 				result += diffuse;\n\
-				result += specular;\n\
+				//result += specular;\n\
 				result *= objectColor;\n\
 				out_Color = result;\n\
+				vec4 textureColor = texture(diffuseTexture, uvs);\n\
 		}";
 #pragma endregion
 
@@ -650,7 +653,7 @@ public:
 			//stbi_image_free(data);
 			glGenTextures(1, &textureID); // Create the handle of the texture
 			glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 558, 558, 0, GL_RGBA, GL_INT, data); //Load the data
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 558, 558, 0, GL_RGBA_INTEGER, GL_BYTE, data); //Load the data
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, 0); //Configure some parameters
 			
 
@@ -710,6 +713,11 @@ public:
 		if (available && enabled) {
 			glBindVertexArray(objectVao);
 			glUseProgram(objectProgram);
+
+			glActiveTexture(GL_TEXTURE0);
+			glBindTexture(GL_TEXTURE_2D, textureID);
+			glUniform1i(glGetUniformLocation(objectProgram, "diffuseTexture"), 0);
+
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
