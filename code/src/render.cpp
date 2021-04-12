@@ -491,6 +491,8 @@ public:
 		"#version 330\n\
 			in vec3 in_Position;\n\
 			in vec3 in_Normal;\n\
+			in vec2 uvs;\n\
+			out vec2 outUvs;\n\
 			out vec4 vert_Normal;\n\
 			uniform mat4 objMat;\n\
 			uniform mat4 mv_Mat;\n\
@@ -505,6 +507,7 @@ public:
 				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
 				LightPos = mv_Mat * lightPos;\n\
 				FragPos = objMat * vec4(in_Position, 1.0);\n\
+				outUvs = uvs;\n\
 		}";
 
 	//Fragment Shader for the objects
@@ -513,7 +516,7 @@ public:
 			in vec4 vert_Normal;\n\
 			in vec4 Normal;\n\
 			in vec4 FragPos;\n\
-			in vec2 uvs;\n\
+			in vec2 outUvs;\n\
 			out vec4 out_Color;\n\
 			uniform mat4 mv_Mat;\n\
 			uniform vec4 lightPos;\n\
@@ -541,8 +544,8 @@ public:
 				result += diffuse;\n\
 				//result += specular;\n\
 				result *= objectColor;\n\
-				vec4 textureColor = texture(diffuseTexture, uvs);\n\
-				out_Color = result + textureColor;\n\
+				vec4 textureColor = texture(diffuseTexture, outUvs);\n\
+				out_Color = /*result + */textureColor;\n\
 		}";
 #pragma endregion
 
@@ -649,12 +652,13 @@ public:
 		rotationAxis = _rotationAxis;
 
 		if (available) {
-			data = stbi_load("resources/Sun.png", &x, &y, &n, 0);
+			data = stbi_load("resources/grassTexture.png", &x, &y, &n, 4);
 			//stbi_image_free(data);
 			glGenTextures(1, &textureID); // Create the handle of the texture
 			glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, 558, 558, 0, GL_RGBA_INTEGER, GL_BYTE, data); //Load the data
-			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, 0); //Configure some parameters
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //Configure some parameters
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); //Configure some parameters
 			
 
 			glGenVertexArrays(1, &objectVao);
@@ -664,13 +668,18 @@ public:
 
 			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[0]);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
-			glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+			glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
 			glEnableVertexAttribArray(0);
 
 			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[1]);
 			glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
-			glVertexAttribPointer((GLuint)1, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), 0);
+			glVertexAttribPointer((GLuint)1, 3, GL_FLOAT, GL_FALSE, 0, 0);
 			glEnableVertexAttribArray(1);
+
+			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[2]);
+			glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec2), &uvs[0], GL_STATIC_DRAW);
+			glVertexAttribPointer((GLuint)2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(2);
 
 
 			glBindVertexArray(0);
@@ -685,6 +694,7 @@ public:
 			glAttachShader(objectProgram, objectShaders[1]);
 			glBindAttribLocation(objectProgram, 0, "in_Position");
 			glBindAttribLocation(objectProgram, 1, "in_Normal");
+			glBindAttribLocation(objectProgram, 2, "uvs");
 			linkProgram(objectProgram);
 
 		}
