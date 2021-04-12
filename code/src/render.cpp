@@ -542,8 +542,7 @@ public:
 				//result += specular;\n\
 				result *= objectColor;\n\
 				vec4 textureColor = texture(diffuseTexture, uvs);\n\
-				out_Color = textureColor;\n\
-				out_Color += result;\n\
+				out_Color = result + textureColor;\n\
 		}";
 #pragma endregion
 
