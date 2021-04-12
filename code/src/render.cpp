@@ -541,8 +541,9 @@ public:
 				result += diffuse;\n\
 				//result += specular;\n\
 				result *= objectColor;\n\
-				out_Color = result;\n\
 				vec4 textureColor = texture(diffuseTexture, uvs);\n\
+				out_Color = textureColor;\n\
+				out_Color += result;\n\
 		}";
 #pragma endregion
 
@@ -649,7 +650,7 @@ public:
 		rotationAxis = _rotationAxis;
 
 		if (available) {
-			data = stbi_load("resources/Sun.png", &x, &y, &n, 1);
+			data = stbi_load("resources/Sun.png", &x, &y, &n, 0);
 			//stbi_image_free(data);
 			glGenTextures(1, &textureID); // Create the handle of the texture
 			glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
@@ -714,6 +715,7 @@ public:
 			glBindVertexArray(objectVao);
 			glUseProgram(objectProgram);
 
+			//Textures
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
 			glUniform1i(glGetUniformLocation(objectProgram, "diffuseTexture"), 0);
