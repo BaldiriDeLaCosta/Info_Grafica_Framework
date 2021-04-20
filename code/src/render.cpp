@@ -501,6 +501,10 @@ public:
 			out vec4 LightPos;\n\
 			out vec4 FragPos;\n\
 			uniform vec4 lightPos;\n\
+			out vec4 position;\n\
+			out vec3 normal;\n\
+			out vec4 color;\n\
+			out vec2 tex_coord;\n\
 			void main() {\n\
 				gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
 				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
@@ -547,6 +551,36 @@ public:
 				vec4 textureColor = texture(diffuseTexture, outUvs);\n\
 				out_Color = /*result + */textureColor;\n\
 		}";
+
+	const char* cube_geomShader =
+		"#version 330\n\
+		layout(triangles) in;\n\
+		layout(triangle_strip, max_vertices = 3) out;\n\
+		out vec4 eyePos;\n\
+		out vec4 centerEyePos;\n\
+		uniform mat4 projMat;\n\
+		uniform float vertexPositions[3];\n\
+		vec4 num_Verts[3];\n\
+		in vec4 position[];\n\
+		in vec3 normal[];\n\
+		in vec4 color[];\n\
+		in vec2 tex_coord[];\n\
+		void main() {\n\
+		 vec3 n = normalize(-gl_in[0].gl_Position.xyz);\n\
+		 vec3 up = vec3(0.0, 1.0, 0.0);\n\
+		 vec3 u = normalize(cross(up, n));\n\
+		 vec3 v = normalize(cross(n, u));\n\
+		 num_Verts[0] = vec4(-vertexPositions[0]*u - vertexPositions[0]*v, 0.0);\n\
+		 num_Verts[1] = vec4( vertexPositions[1]*u - vertexPositions[1]*v, 0.0);\n\
+		 num_Verts[2] = vec4(-vertexPositions[2]*u + vertexPositions[2]*v, 0.0);\n\
+		 centerEyePos = gl_in[0].gl_Position;\n\
+		 for (int i = 0; i < 3; ++i) {\n\
+		 eyePos = (gl_in[0].gl_Position + num_Verts[i]); \n\
+				gl_Position = projMat * eyePos; \n\
+				EmitVertex(); \n\
+		 }\n\
+		 EndPrimitive(); \n\
+		";
 #pragma endregion
 
 	bool loadOBJ(const char* path,
