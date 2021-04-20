@@ -454,7 +454,7 @@ namespace Cube {
 class Object {
 public:
 	//Enum class for diferent object models
-	static enum class Type { DRAGON, CUBE, COUNT };
+	static enum class Type { DRAGON, CUBE, TRIANGLE, COUNT };
 	
 	std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
 	std::vector< glm::vec3 > temp_vertices;
@@ -512,6 +512,10 @@ public:
 				LightPos = mv_Mat * lightPos;\n\
 				FragPos = objMat * vec4(in_Position, 1.0);\n\
 				outUvs = uvs;\n\
+				position = gl_Position;\n\
+				normal = Normal.xyz;\n\
+				color = vec4(1.0, 1.0, 1.0, 1.0);\n\
+				tex_coord = outUvs;\n\
 		}";
 
 	//Fragment Shader for the objects
@@ -545,11 +549,11 @@ public:
 				vec4 specular = specularStrength * specWithoutColor * lightColor;\n\
 				////////////////// -Result\n\
 				vec4 result = ambient;\n\
-				result += diffuse;\n\
+				//result += diffuse;\n\
 				//result += specular;\n\
 				result *= objectColor;\n\
 				vec4 textureColor = texture(diffuseTexture, outUvs);\n\
-				out_Color = /*result + */textureColor;\n\
+				out_Color = result /*+ textureColor*/;\n\
 		}";
 
 	const char* cube_geomShader =
@@ -559,7 +563,7 @@ public:
 		out vec4 eyePos;\n\
 		out vec4 centerEyePos;\n\
 		uniform mat4 projMat;\n\
-		uniform float vertexPositions[3];\n\
+		uniform vec3 vertexPositions[3];\n\
 		vec4 num_Verts[3];\n\
 		in vec4 position[];\n\
 		in vec3 normal[];\n\
@@ -570,11 +574,11 @@ public:
 		 vec3 up = vec3(0.0, 1.0, 0.0);\n\
 		 vec3 u = normalize(cross(up, n));\n\
 		 vec3 v = normalize(cross(n, u));\n\
-		 num_Verts[0] = vec4(-vertexPositions[0]*u - vertexPositions[0]*v, 0.0);\n\
-		 num_Verts[1] = vec4( vertexPositions[1]*u - vertexPositions[1]*v, 0.0);\n\
-		 num_Verts[2] = vec4(-vertexPositions[2]*u + vertexPositions[2]*v, 0.0);\n\
+		 num_Verts[0] = vec4(-vertexPositions[0].x*u - vertexPositions[0].x*v, 0.0);\n\
+		 num_Verts[1] = vec4( vertexPositions[1].y*u - vertexPositions[1].y*v, 0.0);\n\
+		 num_Verts[2] = vec4(-vertexPositions[2].z*u + vertexPositions[2].z*v, 0.0);\n\
 		 centerEyePos = gl_in[0].gl_Position;\n\
-		 for (int i = 0; i < 3; ++i) {\n\
+		 for (int i = 0; i < 3; i++) {\n\
 		 eyePos = (gl_in[0].gl_Position + num_Verts[i]); \n\
 				gl_Position = projMat * eyePos; \n\
 				EmitVertex(); \n\
@@ -675,6 +679,11 @@ public:
 		case Type::CUBE:
 			available = loadOBJ("resources/cube.obj.txt", vertices, uvs, normals);
 			break;
+		case Type::TRIANGLE:
+			available = true;
+			vertices = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
+			uvs.push_back(glm::vec2(0.f, 0.f));
+			normals.push_back(glm::vec3(0.f, 0.f, 0.f));
 
 		default:;
 
@@ -771,7 +780,8 @@ public:
 			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f);
 			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
 			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
-
+			glm::vec3 vertexArray[3] = {glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f)};
+			glUniform3fv(glGetUniformLocation(objectProgram, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
 			//objMat matrix modify
 			objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
@@ -815,13 +825,14 @@ GLuint VAO;
 GLuint VBO;
 
 //Objects declaration
-Object babyDragon;
-Object brotherDragon;
-Object sisterDragon;
-Object mommyDragon;
-Object daddyDragon;
-Object ground;
-Object light;
+//Object babyDragon;
+//Object brotherDragon;
+//Object sisterDragon;
+//Object mommyDragon;
+//Object daddyDragon;
+//Object ground;
+//Object light;
+Object triangle;
 
 void GLinit(int width, int height) {
 	glViewport(0, 0, width, height);
@@ -838,14 +849,14 @@ void GLinit(int width, int height) {
 	//Cube::setupCube();
 
 	//Objects inicialization
-	babyDragon.setupObject(Object::Type::DRAGON, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
+	/*babyDragon.setupObject(Object::Type::DRAGON, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
 	brotherDragon.setupObject(Object::Type::DRAGON, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
 	sisterDragon.setupObject(Object::Type::DRAGON, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
 	mommyDragon.setupObject(Object::Type::DRAGON, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
 	daddyDragon.setupObject(Object::Type::DRAGON, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
 	ground.setupObject(Object::Type::CUBE, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
-	light.setupObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
-
+	light.setupObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));*/
+	triangle.setupObject(Object::Type::TRIANGLE);
 	/////////////////////////////////////////////////////TODO
 	GLuint vertex_shader;
 	GLuint fragment_shader;
@@ -936,14 +947,14 @@ void GLrender(float dt) {
 	RV::_MVP = RV::_projection * RV::_modelView;
 
 	//Drawing of the scene objects
-	babyDragon.drawObject();
+	/*babyDragon.drawObject();
 	brotherDragon.drawObject();
 	sisterDragon.drawObject();
 	mommyDragon.drawObject();
 	daddyDragon.drawObject();
 	ground.drawObject();
-	light.drawObject(glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4( Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
-
+	light.drawObject(glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4( Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));*/
+	triangle.drawObject();
 	ImGui::Render();
 }
 
