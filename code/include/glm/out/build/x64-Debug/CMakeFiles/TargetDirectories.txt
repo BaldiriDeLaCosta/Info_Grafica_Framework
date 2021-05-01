@@ -1,0 +1,3 @@
+C:/Users/Joel/Desktop/Arxius uni/Informatica Grafica/Info_Grafica_Framework/code/include/glm/out/build/x64-Debug/CMakeFiles/glm_dummy.dir
+C:/Users/Joel/Desktop/Arxius uni/Informatica Grafica/Info_Grafica_Framework/code/include/glm/out/build/x64-Debug/CMakeFiles/edit_cache.dir
+C:/Users/Joel/Desktop/Arxius uni/Informatica Grafica/Info_Grafica_Framework/code/include/glm/out/build/x64-Debug/CMakeFiles/rebuild_cache.dir

@@ -467,7 +467,7 @@ public:
 
 	GLuint objectVao;
 	GLuint objectVbo[3];
-	GLuint objectShaders[2];
+	GLuint objectShaders[3];
 	GLuint objectProgram;
 	GLuint textureID;
 
@@ -558,7 +558,7 @@ public:
 
 	const char* cube_geomShader =
 		"#version 330\n\
-		layout(triangles) in;\n\
+		layout(points) in;\n\
 		layout(triangle_strip, max_vertices = 3) out;\n\
 		out vec4 eyePos;\n\
 		out vec4 centerEyePos;\n\
@@ -730,11 +730,13 @@ public:
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			
 			objectShaders[0] = compileShader(cube_vertShader, GL_VERTEX_SHADER, "cubeVert");
+			objectShaders[2] = compileShader(cube_geomShader, GL_GEOMETRY_SHADER, "cubeGeom");
 			objectShaders[1] = compileShader(cube_fragShader, GL_FRAGMENT_SHADER, "cubeFrag");
 			
 			objectProgram = glCreateProgram();
 			glAttachShader(objectProgram, objectShaders[0]);
 			glAttachShader(objectProgram, objectShaders[1]);
+			glAttachShader(objectProgram, objectShaders[2]);
 			glBindAttribLocation(objectProgram, 0, "in_Position");
 			glBindAttribLocation(objectProgram, 1, "in_Normal");
 			glBindAttribLocation(objectProgram, 2, "uvs");
@@ -750,6 +752,7 @@ public:
 		glDeleteProgram(objectProgram);
 		glDeleteShader(objectShaders[0]);
 		glDeleteShader(objectShaders[1]);
+		glDeleteShader(objectShaders[2]);
 		glDeleteTextures(1, &textureID);
 	}
 
