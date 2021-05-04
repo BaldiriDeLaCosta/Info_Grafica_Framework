@@ -501,10 +501,6 @@ public:
 			out vec4 LightPos;\n\
 			out vec4 FragPos;\n\
 			uniform vec4 lightPos;\n\
-			out vec4 position;\n\
-			out vec3 normal;\n\
-			out vec4 color;\n\
-			out vec2 tex_coord;\n\
 			void main() {\n\
 				gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
 				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
@@ -512,19 +508,14 @@ public:
 				LightPos = mv_Mat * lightPos;\n\
 				FragPos = objMat * vec4(in_Position, 1.0);\n\
 				outUvs = uvs;\n\
-				position = gl_Position;\n\
-				normal = Normal.xyz;\n\
-				color = vec4(1.0, 1.0, 1.0, 1.0);\n\
-				tex_coord = outUvs;\n\
 		}";
 
 	//Fragment Shader for the objects
 	const char* cube_fragShader =
 		"#version 330\n\
-			in vec4 vert_Normal;\n\
-			in vec4 Normal;\n\
-			in vec4 FragPos;\n\
-			in vec2 outUvs;\n\
+			in vec4 _Normal;\n\
+			in vec4 _FragPos;\n\
+			in vec2 _outUvs;\n\
 			out vec4 out_Color;\n\
 			uniform mat4 mv_Mat;\n\
 			uniform vec4 lightPos;\n\
@@ -537,13 +528,13 @@ public:
 				float ambientStrength = 0.2f;\n\
 				vec4 ambient = ambientStrength * lightColor;\n\
 				////////////////// -Diffuse\n\
-				vec4 normalizedNormal = normalize(Normal);\n\
-				vec4 lightDir = normalize(lightPos - FragPos);\n\
+				vec4 normalizedNormal = normalize(_Normal);\n\
+				vec4 lightDir = normalize(lightPos - _FragPos);\n\
 				float diffWithoutColor = max(dot(normalizedNormal, lightDir), 0.0f);\n\
 				vec4 diffuse = diffWithoutColor * lightColor;\n\
 				////////////////// -Specular\n\
 				float specularStrength = 1.0f;\n\
-				vec4 viewDir = normalize(viewPos - FragPos);\n\
+				vec4 viewDir = normalize(viewPos - _FragPos);\n\
 				vec4 reflectDir = reflect(-lightDir, normalizedNormal);\n\
 				float specWithoutColor = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n\
 				vec4 specular = specularStrength * specWithoutColor * lightColor;\n\
@@ -552,7 +543,7 @@ public:
 				//result += diffuse;\n\
 				//result += specular;\n\
 				result *= objectColor;\n\
-				vec4 textureColor = texture(diffuseTexture, outUvs);\n\
+				vec4 textureColor = texture(diffuseTexture, _outUvs);\n\
 				out_Color = result /*+ textureColor*/;\n\
 		}";
 
@@ -562,13 +553,15 @@ public:
 		layout(triangle_strip, max_vertices = 3) out;\n\
 		out vec4 eyePos;\n\
 		out vec4 centerEyePos;\n\
+		out vec4 _FragPos;\n\
+		out vec3 _Normal;\n\
+		out vec2 _outUvs;\n\
 		uniform mat4 projMat;\n\
 		uniform vec3 vertexPositions[3];\n\
 		vec4 num_Verts[3];\n\
-		in vec4 position[];\n\
-		in vec3 normal[];\n\
-		in vec4 color[];\n\
-		in vec2 tex_coord[];\n\
+		in vec4 FragPos[];\n\
+		in vec3 Normal[];\n\
+		in vec2 outUvs[];\n\
 		void main() {\n\
 		 vec3 n = normalize(-gl_in[0].gl_Position.xyz);\n\
 		 vec3 up = vec3(0.0, 1.0, 0.0);\n\
@@ -579,12 +572,15 @@ public:
 		 num_Verts[2] = vec4(-vertexPositions[2].z*u + vertexPositions[2].z*v, 0.0);\n\
 		 centerEyePos = gl_in[0].gl_Position;\n\
 		 for (int i = 0; i < 3; i++) {\n\
-		 eyePos = (gl_in[0].gl_Position + num_Verts[i]); \n\
+				eyePos = (gl_in[0].gl_Position + num_Verts[i]); \n\
 				gl_Position = projMat * eyePos; \n\
-				EmitVertex(); \n\
+				_FragPos = FragPos[i];\n\
+				_Normal = Normal[i];\n\
+				_outUvs = outUvs[i];\n\
+				EmitVertex();\n\
 		 }\n\
 		 EndPrimitive(); \n\
-		";
+		}";
 #pragma endregion
 
 	bool loadOBJ(const char* path,
@@ -789,7 +785,7 @@ public:
 			objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 
-			glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
+			glDrawArrays(GL_POINTS, 0, vertices.size() * 3);
 
 			glUseProgram(0);
 			glBindVertexArray(0);
@@ -812,7 +808,7 @@ public:
 			objMat = glm::translate(glm::mat4(), currentPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 
-			glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
+			glDrawArrays(GL_POINTS, 0, vertices.size() * 3);
 
 			glUseProgram(0);
 			glBindVertexArray(0);
