@@ -449,6 +449,97 @@ namespace Cube {
 	}
 }
 
+
+#pragma region ShaderRegion
+
+// ToDo: Mirar que llegeix-hi be els txt, afegir textura a shader i fer funcio use()
+
+class Shader {
+private:
+	const char* vertShader;
+	const char* fragShader;
+	const char* geomShader;
+
+	GLuint compileShaderFromFile(const char* shaderPath, GLenum shaderType, const char* name = "") {
+		//char* shaderStr = new char;
+
+		//Checker for the file being open
+		FILE* file = fopen(shaderPath, "rb");
+		fseek(file, 0, SEEK_END);
+		long fsize = ftell(file);
+		fseek(file, 0, SEEK_SET);
+
+		char* shaderStr = (char*)malloc(fsize + 1);
+		fread(shaderStr, fsize, 1, file);
+		fclose(file);
+
+		shaderStr[fsize] = 0;
+
+
+		GLuint shader = glCreateShader(shaderType);
+		glShaderSource(shader, 1, &shaderStr, NULL);
+		glCompileShader(shader);
+		GLint res;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &res);
+		if (res == GL_FALSE) {
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &res);
+			char* buff = new char[res];
+			glGetShaderInfoLog(shader, res, &res, buff);
+			fprintf(stderr, "Error Shader %s: %s", name, buff);
+			delete[] buff;
+			glDeleteShader(shader);
+			return 0;
+		}
+		return shader;
+	}
+
+public:
+	GLuint program;
+	GLuint* shaders;
+	unsigned int id;
+
+	Shader(const char* vertexPath, const char* fragmentPath) {
+		shaders = new GLuint[2];
+		shaders[0] = compileShaderFromFile(vertexPath, GL_VERTEX_SHADER, "vertexShader");
+		shaders[1] = compileShaderFromFile(fragmentPath, GL_FRAGMENT_SHADER, "fragmentShader");
+
+		program = glCreateProgram();
+		glAttachShader(program, shaders[0]);
+		glAttachShader(program, shaders[1]);
+
+		glBindAttribLocation(program, 0, "in_Position");
+		glBindAttribLocation(program, 1, "in_Normal");
+		glBindAttribLocation(program, 2, "uvs");
+
+		linkProgram(program);
+	}
+	Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath) {
+		shaders = new GLuint[3];
+		shaders[0] = compileShaderFromFile(vertexPath, GL_VERTEX_SHADER, "vertexShader");
+		shaders[1] = compileShaderFromFile(fragmentPath, GL_FRAGMENT_SHADER, "fragmentShader");
+		shaders[2] = compileShaderFromFile(geometryPath, GL_GEOMETRY_SHADER, "geometryShader");
+
+		program = glCreateProgram();
+		glAttachShader(program, shaders[0]);
+		glAttachShader(program, shaders[1]);
+		glAttachShader(program, shaders[2]);
+
+		glBindAttribLocation(program, 0, "in_Position");
+		glBindAttribLocation(program, 1, "in_Normal");
+		glBindAttribLocation(program, 2, "uvs");
+
+		linkProgram(program);
+	}
+
+	void use();
+
+
+	//setters for uniforms
+
+};
+
+#pragma endregion
+
 /////////////////////////////////////////////////
 #pragma region Object
 class Object {
@@ -467,9 +558,11 @@ public:
 
 	GLuint objectVao;
 	GLuint objectVbo[3];
-	GLuint objectShaders[3];
-	GLuint objectProgram;
+	Shader shader;
 	GLuint textureID;
+	
+	//GLuint objectShaders[3];
+	//GLuint objectProgram;
 
 	//Setup Variables
 	bool available = false;
@@ -481,106 +574,102 @@ public:
 	glm::vec3 modelSize;
 	glm::vec4 objectColor;
 
-
-
-
-
 #pragma region cubeShaders
-	//Vertex Shader for the objects
-	const char* cube_vertShader =
-		"#version 330\n\
-			in vec3 in_Position;\n\
-			in vec3 in_Normal;\n\
-			in vec2 uvs;\n\
-			out vec2 outUvs;\n\
-			out vec4 vert_Normal;\n\
-			uniform mat4 objMat;\n\
-			uniform mat4 mv_Mat;\n\
-			uniform mat4 mvpMat;\n\
-			out vec4 Normal;\n\
-			out vec4 LightPos;\n\
-			out vec4 FragPos;\n\
-			uniform vec4 lightPos;\n\
-			void main() {\n\
-				gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
-				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
-				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
-				LightPos = mv_Mat * lightPos;\n\
-				FragPos = objMat * vec4(in_Position, 1.0);\n\
-				outUvs = uvs;\n\
-		}";
+	////Vertex Shader for the objects
+	//const char* cube_vertShader =
+	//	"#version 330\n\
+	//		in vec3 in_Position;\n\
+	//		in vec3 in_Normal;\n\
+	//		in vec2 uvs;\n\
+	//		out vec2 outUvs;\n\
+	//		out vec4 vert_Normal;\n\
+	//		uniform mat4 objMat;\n\
+	//		uniform mat4 mv_Mat;\n\
+	//		uniform mat4 mvpMat;\n\
+	//		out vec4 Normal;\n\
+	//		out vec4 LightPos;\n\
+	//		out vec4 FragPos;\n\
+	//		uniform vec4 lightPos;\n\
+	//		void main() {\n\
+	//			gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+	//			vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
+	//			Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
+	//			LightPos = mv_Mat * lightPos;\n\
+	//			FragPos = objMat * vec4(in_Position, 1.0);\n\
+	//			outUvs = uvs;\n\
+	//	}";
 
-	//Fragment Shader for the objects
-	const char* cube_fragShader =
-		"#version 330\n\
-			in vec4 _Normal;\n\
-			in vec4 _FragPos;\n\
-			in vec2 _outUvs;\n\
-			out vec4 out_Color;\n\
-			uniform mat4 mv_Mat;\n\
-			uniform vec4 lightPos;\n\
-			uniform vec4 viewPos;\n\
-			uniform vec4 lightColor;\n\
-			uniform vec4 objectColor;\n\
-			uniform sampler2D diffuseTexture;\n\
-			void main() {\n\
-				////////////////// -Ambient\n\
-				float ambientStrength = 0.2f;\n\
-				vec4 ambient = ambientStrength * lightColor;\n\
-				////////////////// -Diffuse\n\
-				vec4 normalizedNormal = normalize(_Normal);\n\
-				vec4 lightDir = normalize(lightPos - _FragPos);\n\
-				float diffWithoutColor = max(dot(normalizedNormal, lightDir), 0.0f);\n\
-				vec4 diffuse = diffWithoutColor * lightColor;\n\
-				////////////////// -Specular\n\
-				float specularStrength = 1.0f;\n\
-				vec4 viewDir = normalize(viewPos - _FragPos);\n\
-				vec4 reflectDir = reflect(-lightDir, normalizedNormal);\n\
-				float specWithoutColor = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n\
-				vec4 specular = specularStrength * specWithoutColor * lightColor;\n\
-				////////////////// -Result\n\
-				vec4 result = ambient;\n\
-				//result += diffuse;\n\
-				//result += specular;\n\
-				result *= objectColor;\n\
-				vec4 textureColor = texture(diffuseTexture, _outUvs);\n\
-				out_Color = result /*+ textureColor*/;\n\
-		}";
+	////Fragment Shader for the objects
+	//const char* cube_fragShader =
+	//	"#version 330\n\
+	//		in vec4 _Normal;\n\
+	//		in vec4 _FragPos;\n\
+	//		in vec2 _outUvs;\n\
+	//		out vec4 out_Color;\n\
+	//		uniform mat4 mv_Mat;\n\
+	//		uniform vec4 lightPos;\n\
+	//		uniform vec4 viewPos;\n\
+	//		uniform vec4 lightColor;\n\
+	//		uniform vec4 objectColor;\n\
+	//		uniform sampler2D diffuseTexture;\n\
+	//		void main() {\n\
+	//			////////////////// -Ambient\n\
+	//			float ambientStrength = 0.2f;\n\
+	//			vec4 ambient = ambientStrength * lightColor;\n\
+	//			////////////////// -Diffuse\n\
+	//			vec4 normalizedNormal = normalize(_Normal);\n\
+	//			vec4 lightDir = normalize(lightPos - _FragPos);\n\
+	//			float diffWithoutColor = max(dot(normalizedNormal, lightDir), 0.0f);\n\
+	//			vec4 diffuse = diffWithoutColor * lightColor;\n\
+	//			////////////////// -Specular\n\
+	//			float specularStrength = 1.0f;\n\
+	//			vec4 viewDir = normalize(viewPos - _FragPos);\n\
+	//			vec4 reflectDir = reflect(-lightDir, normalizedNormal);\n\
+	//			float specWithoutColor = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n\
+	//			vec4 specular = specularStrength * specWithoutColor * lightColor;\n\
+	//			////////////////// -Result\n\
+	//			vec4 result = ambient;\n\
+	//			//result += diffuse;\n\
+	//			//result += specular;\n\
+	//			result *= objectColor;\n\
+	//			vec4 textureColor = texture(diffuseTexture, _outUvs);\n\
+	//			out_Color = result /*+ textureColor*/;\n\
+	//	}";
 
-	const char* cube_geomShader =
-		"#version 330\n\
-		layout(points) in;\n\
-		layout(triangle_strip, max_vertices = 3) out;\n\
-		out vec4 eyePos;\n\
-		out vec4 centerEyePos;\n\
-		out vec4 _FragPos;\n\
-		out vec3 _Normal;\n\
-		out vec2 _outUvs;\n\
-		uniform mat4 projMat;\n\
-		uniform vec3 vertexPositions[3];\n\
-		vec4 num_Verts[3];\n\
-		in vec4 FragPos[];\n\
-		in vec3 Normal[];\n\
-		in vec2 outUvs[];\n\
-		void main() {\n\
-		 vec3 n = normalize(-gl_in[0].gl_Position.xyz);\n\
-		 vec3 up = vec3(0.0, 1.0, 0.0);\n\
-		 vec3 u = normalize(cross(up, n));\n\
-		 vec3 v = normalize(cross(n, u));\n\
-		 num_Verts[0] = vec4(-vertexPositions[0].x*u - vertexPositions[0].x*v, 0.0);\n\
-		 num_Verts[1] = vec4( vertexPositions[1].y*u - vertexPositions[1].y*v, 0.0);\n\
-		 num_Verts[2] = vec4(-vertexPositions[2].z*u + vertexPositions[2].z*v, 0.0);\n\
-		 centerEyePos = gl_in[0].gl_Position;\n\
-		 for (int i = 0; i < 3; i++) {\n\
-				eyePos = (gl_in[0].gl_Position + num_Verts[i]); \n\
-				gl_Position = projMat * eyePos; \n\
-				_FragPos = FragPos[i];\n\
-				_Normal = Normal[i];\n\
-				_outUvs = outUvs[i];\n\
-				EmitVertex();\n\
-		 }\n\
-		 EndPrimitive(); \n\
-		}";
+	//const char* cube_geomShader =
+	//	"#version 330\n\
+	//	layout(points) in;\n\
+	//	layout(triangle_strip, max_vertices = 3) out;\n\
+	//	out vec4 eyePos;\n\
+	//	out vec4 centerEyePos;\n\
+	//	out vec4 _FragPos;\n\
+	//	out vec3 _Normal;\n\
+	//	out vec2 _outUvs;\n\
+	//	uniform mat4 projMat;\n\
+	//	uniform vec3 vertexPositions[3];\n\
+	//	vec4 num_Verts[3];\n\
+	//	in vec4 FragPos[];\n\
+	//	in vec3 Normal[];\n\
+	//	in vec2 outUvs[];\n\
+	//	void main() {\n\
+	//	 vec3 n = normalize(-gl_in[0].gl_Position.xyz);\n\
+	//	 vec3 up = vec3(0.0, 1.0, 0.0);\n\
+	//	 vec3 u = normalize(cross(up, n));\n\
+	//	 vec3 v = normalize(cross(n, u));\n\
+	//	 num_Verts[0] = vec4(-vertexPositions[0].x*u - vertexPositions[0].x*v, 0.0);\n\
+	//	 num_Verts[1] = vec4( vertexPositions[1].y*u - vertexPositions[1].y*v, 0.0);\n\
+	//	 num_Verts[2] = vec4(-vertexPositions[2].z*u + vertexPositions[2].z*v, 0.0);\n\
+	//	 centerEyePos = gl_in[0].gl_Position;\n\
+	//	 for (int i = 0; i < 3; i++) {\n\
+	//			eyePos = (gl_in[0].gl_Position + num_Verts[i]); \n\
+	//			gl_Position = projMat * eyePos; \n\
+	//			_FragPos = FragPos[i];\n\
+	//			_Normal = Normal[i];\n\
+	//			_outUvs = outUvs[i];\n\
+	//			EmitVertex();\n\
+	//	 }\n\
+	//	 EndPrimitive(); \n\
+	//	}";
 #pragma endregion
 
 	bool loadOBJ(const char* path,
@@ -724,10 +813,12 @@ public:
 			glBindVertexArray(0);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+			shader = Shader("shaders/phongVertexShader.txt", "shaders/phongFragmentShader.txt", "shaders/phongGeometryShader.txt");
 			
-			objectShaders[0] = compileShader(cube_vertShader, GL_VERTEX_SHADER, "cubeVert");
-			objectShaders[2] = compileShader(cube_geomShader, GL_GEOMETRY_SHADER, "cubeGeom");
+			/*objectShaders[0] = compileShader(cube_vertShader, GL_VERTEX_SHADER, "cubeVert");
 			objectShaders[1] = compileShader(cube_fragShader, GL_FRAGMENT_SHADER, "cubeFrag");
+			objectShaders[2] = compileShader(cube_geomShader, GL_GEOMETRY_SHADER, "cubeGeom");
 			
 			objectProgram = glCreateProgram();
 			glAttachShader(objectProgram, objectShaders[0]);
@@ -736,7 +827,7 @@ public:
 			glBindAttribLocation(objectProgram, 0, "in_Position");
 			glBindAttribLocation(objectProgram, 1, "in_Normal");
 			glBindAttribLocation(objectProgram, 2, "uvs");
-			linkProgram(objectProgram);
+			linkProgram(objectProgram);*/
 
 		}
 	}
@@ -745,10 +836,10 @@ public:
 		glDeleteBuffers(3, objectVbo);
 		glDeleteVertexArrays(1, &objectVao);
 
-		glDeleteProgram(objectProgram);
-		glDeleteShader(objectShaders[0]);
-		glDeleteShader(objectShaders[1]);
-		glDeleteShader(objectShaders[2]);
+		glDeleteProgram(shader.program);
+		glDeleteShader(shader.shaders[0]);
+		glDeleteShader(shader.shaders[1]);
+		glDeleteShader(shader.shaders[2]);
 		glDeleteTextures(1, &textureID);
 	}
 
@@ -764,26 +855,26 @@ public:
 	void drawObject() {
 		if (available && enabled) {
 			glBindVertexArray(objectVao);
-			glUseProgram(objectProgram);
+			glUseProgram(shader.program);
 
 			//Textures
 			glActiveTexture(GL_TEXTURE0);
 			glBindTexture(GL_TEXTURE_2D, textureID);
-			glUniform1i(glGetUniformLocation(objectProgram, "diffuseTexture"), 0);
+			glUniform1i(glGetUniformLocation(shader.program, "diffuseTexture"), 0);
 
-			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
-			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
-			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
-			glUniform4f(glGetUniformLocation(objectProgram, "color"), 1.f, 0.1f, 1.f, 0.f);
-			glUniform4f(glGetUniformLocation(objectProgram, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
-			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f);
-			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
-			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
+			glUniformMatrix4fv(glGetUniformLocation(shader.program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniformMatrix4fv(glGetUniformLocation(shader.program, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+			glUniformMatrix4fv(glGetUniformLocation(shader.program, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+			glUniform4f(glGetUniformLocation(shader.program, "color"), 1.f, 0.1f, 1.f, 0.f);
+			glUniform4f(glGetUniformLocation(shader.program, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
+			glUniform4f(glGetUniformLocation(shader.program, "lightColor"), Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f);
+			glUniform4f(glGetUniformLocation(shader.program, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
+			glUniform4f(glGetUniformLocation(shader.program, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
 			glm::vec3 vertexArray[3] = {glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f)};
-			glUniform3fv(glGetUniformLocation(objectProgram, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
+			glUniform3fv(glGetUniformLocation(shader.program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
 			//objMat matrix modify
 			objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
-			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniformMatrix4fv(glGetUniformLocation(shader.program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 
 			glDrawArrays(GL_POINTS, 0, vertices.size() * 3);
 
@@ -795,18 +886,18 @@ public:
 	void drawObject(glm::vec3 currentPos, glm::vec4 _lightColor) {
 		if (available && enabled) {
 			glBindVertexArray(objectVao);
-			glUseProgram(objectProgram);
-			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
-			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
-			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
-			glUniform4f(glGetUniformLocation(objectProgram, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
-			glUniform4f(glGetUniformLocation(objectProgram, "lightColor"), _lightColor.r, _lightColor.g, _lightColor.b, 1.0f);
-			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
-			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
+			glUseProgram(shader.program);
+			glUniformMatrix4fv(glGetUniformLocation(shader.program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniformMatrix4fv(glGetUniformLocation(shader.program, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+			glUniformMatrix4fv(glGetUniformLocation(shader.program, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+			glUniform4f(glGetUniformLocation(shader.program, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
+			glUniform4f(glGetUniformLocation(shader.program, "lightColor"), _lightColor.r, _lightColor.g, _lightColor.b, 1.0f);
+			glUniform4f(glGetUniformLocation(shader.program, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
+			glUniform4f(glGetUniformLocation(shader.program, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
 
 			//objMat matrix modify
 			objMat = glm::translate(glm::mat4(), currentPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
-			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			glUniformMatrix4fv(glGetUniformLocation(shader.program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 
 			glDrawArrays(GL_POINTS, 0, vertices.size() * 3);
 

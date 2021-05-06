@@ -1,0 +1,34 @@
+#version 330\n\
+			in vec4 _Normal;\n\
+			in vec4 _FragPos;\n\
+			in vec2 _outUvs;\n\
+			out vec4 out_Color;\n\
+			uniform mat4 mv_Mat;\n\
+			uniform vec4 lightPos;\n\
+			uniform vec4 viewPos;\n\
+			uniform vec4 lightColor;\n\
+			uniform vec4 objectColor;\n\
+			uniform sampler2D diffuseTexture;\n\
+			void main() {\n\
+				////////////////// -Ambient\n\
+				float ambientStrength = 0.2f;\n\
+				vec4 ambient = ambientStrength * lightColor;\n\
+				////////////////// -Diffuse\n\
+				vec4 normalizedNormal = normalize(_Normal);\n\
+				vec4 lightDir = normalize(lightPos - _FragPos);\n\
+				float diffWithoutColor = max(dot(normalizedNormal, lightDir), 0.0f);\n\
+				vec4 diffuse = diffWithoutColor * lightColor;\n\
+				////////////////// -Specular\n\
+				float specularStrength = 1.0f;\n\
+				vec4 viewDir = normalize(viewPos - _FragPos);\n\
+				vec4 reflectDir = reflect(-lightDir, normalizedNormal);\n\
+				float specWithoutColor = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n\
+				vec4 specular = specularStrength * specWithoutColor * lightColor;\n\
+				////////////////// -Result\n\
+				vec4 result = ambient;\n\
+				//result += diffuse;\n\
+				//result += specular;\n\
+				result *= objectColor;\n\
+				vec4 textureColor = texture(diffuseTexture, _outUvs);\n\
+				out_Color = result /*+ textureColor*/;\n\
+		}

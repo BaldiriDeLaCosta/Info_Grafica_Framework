@@ -1,0 +1,33 @@
+#version 330\n\
+		layout(points) in;\n\
+		layout(triangle_strip, max_vertices = 3) out;\n\
+		out vec4 eyePos;\n\
+		out vec4 centerEyePos;\n\
+		out vec4 _FragPos;\n\
+		out vec3 _Normal;\n\
+		out vec2 _outUvs;\n\
+		uniform mat4 projMat;\n\
+		uniform vec3 vertexPositions[3];\n\
+		vec4 num_Verts[3];\n\
+		in vec4 FragPos[];\n\
+		in vec3 Normal[];\n\
+		in vec2 outUvs[];\n\
+		void main() {\n\
+		 vec3 n = normalize(-gl_in[0].gl_Position.xyz);\n\
+		 vec3 up = vec3(0.0, 1.0, 0.0);\n\
+		 vec3 u = normalize(cross(up, n));\n\
+		 vec3 v = normalize(cross(n, u));\n\
+		 num_Verts[0] = vec4(-vertexPositions[0].x*u - vertexPositions[0].x*v, 0.0);\n\
+		 num_Verts[1] = vec4( vertexPositions[1].y*u - vertexPositions[1].y*v, 0.0);\n\
+		 num_Verts[2] = vec4(-vertexPositions[2].z*u + vertexPositions[2].z*v, 0.0);\n\
+		 centerEyePos = gl_in[0].gl_Position;\n\
+		 for (int i = 0; i < 3; i++) {\n\
+				eyePos = (gl_in[0].gl_Position + num_Verts[i]); \n\
+				gl_Position = projMat * eyePos; \n\
+				_FragPos = FragPos[i];\n\
+				_Normal = Normal[i];\n\
+				_outUvs = outUvs[i];\n\
+				EmitVertex();\n\
+		 }\n\
+		 EndPrimitive(); \n\
+		}

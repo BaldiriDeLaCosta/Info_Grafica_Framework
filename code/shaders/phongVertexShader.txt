@@ -1,0 +1,21 @@
+#version 330\n\
+			in vec3 in_Position;\n\
+			in vec3 in_Normal;\n\
+			in vec2 uvs;\n\
+			out vec2 outUvs;\n\
+			out vec4 vert_Normal;\n\
+			uniform mat4 objMat;\n\
+			uniform mat4 mv_Mat;\n\
+			uniform mat4 mvpMat;\n\
+			out vec4 Normal;\n\
+			out vec4 LightPos;\n\
+			out vec4 FragPos;\n\
+			uniform vec4 lightPos;\n\
+			void main() {\n\
+				gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
+				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
+				LightPos = mv_Mat * lightPos;\n\
+				FragPos = objMat * vec4(in_Position, 1.0);\n\
+				outUvs = uvs;\n\
+		}
