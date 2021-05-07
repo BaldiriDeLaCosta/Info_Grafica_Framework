@@ -116,6 +116,9 @@ void GLmousecb(MouseEvent ev) {
 
 //////////////////////////////////////////////////
 GLuint compileShader(const char* shaderStr, GLenum shaderType, const char* name = "") {
+	/*printf("\n\nCompileShader: ");
+	printf(shaderStr);*/
+
 	GLuint shader = glCreateShader(shaderType);
 	glShaderSource(shader, 1, &shaderStr, NULL);
 	glCompileShader(shader);
@@ -452,13 +455,13 @@ namespace Cube {
 
 #pragma region ShaderRegion
 
-// ToDo: Mirar que llegeix-hi be els txt, afegir textura a shader i fer funcio use()
+// ToDo: Afegir textura a shader i fer funcio use()
 
 class Shader {
 private:
-	const char* vertShader;
+	/*const char* vertShader;
 	const char* fragShader;
-	const char* geomShader;
+	const char* geomShader;*/
 
 	GLuint compileShaderFromFile(const char* shaderPath, GLenum shaderType, const char* name = "") {
 		//char* shaderStr = new char;
@@ -475,6 +478,9 @@ private:
 
 		shaderStr[fsize] = 0;
 
+		//printf("\n\n%s: ", name);
+		//printf(shaderStr);
+
 
 		GLuint shader = glCreateShader(shaderType);
 		glShaderSource(shader, 1, &shaderStr, NULL);
@@ -485,7 +491,7 @@ private:
 			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &res);
 			char* buff = new char[res];
 			glGetShaderInfoLog(shader, res, &res, buff);
-			fprintf(stderr, "Error Shader %s: %s", name, buff);
+			fprintf(stderr, "Error Shader %s: %s", name, buff);	//Error aqui
 			delete[] buff;
 			glDeleteShader(shader);
 			return 0;
@@ -498,6 +504,7 @@ public:
 	GLuint* shaders;
 	unsigned int id;
 
+	Shader() {};
 	Shader(const char* vertexPath, const char* fragmentPath) {
 		shaders = new GLuint[2];
 		shaders[0] = compileShaderFromFile(vertexPath, GL_VERTEX_SHADER, "vertexShader");
@@ -518,6 +525,7 @@ public:
 		shaders[0] = compileShaderFromFile(vertexPath, GL_VERTEX_SHADER, "vertexShader");
 		shaders[1] = compileShaderFromFile(fragmentPath, GL_FRAGMENT_SHADER, "fragmentShader");
 		shaders[2] = compileShaderFromFile(geometryPath, GL_GEOMETRY_SHADER, "geometryShader");
+
 
 		program = glCreateProgram();
 		glAttachShader(program, shaders[0]);
@@ -575,101 +583,101 @@ public:
 	glm::vec4 objectColor;
 
 #pragma region cubeShaders
-	////Vertex Shader for the objects
-	//const char* cube_vertShader =
-	//	"#version 330\n\
-	//		in vec3 in_Position;\n\
-	//		in vec3 in_Normal;\n\
-	//		in vec2 uvs;\n\
-	//		out vec2 outUvs;\n\
-	//		out vec4 vert_Normal;\n\
-	//		uniform mat4 objMat;\n\
-	//		uniform mat4 mv_Mat;\n\
-	//		uniform mat4 mvpMat;\n\
-	//		out vec4 Normal;\n\
-	//		out vec4 LightPos;\n\
-	//		out vec4 FragPos;\n\
-	//		uniform vec4 lightPos;\n\
-	//		void main() {\n\
-	//			gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
-	//			vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
-	//			Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
-	//			LightPos = mv_Mat * lightPos;\n\
-	//			FragPos = objMat * vec4(in_Position, 1.0);\n\
-	//			outUvs = uvs;\n\
-	//	}";
+	//Vertex Shader for the objects
+	const char* cube_vertShader =
+		"#version 330\n\
+			in vec3 in_Position;\n\
+			in vec3 in_Normal;\n\
+			in vec2 uvs;\n\
+			out vec2 outUvs;\n\
+			out vec4 vert_Normal;\n\
+			uniform mat4 objMat;\n\
+			uniform mat4 mv_Mat;\n\
+			uniform mat4 mvpMat;\n\
+			out vec4 Normal;\n\
+			out vec4 LightPos;\n\
+			out vec4 FragPos;\n\
+			uniform vec4 lightPos;\n\
+			void main() {\n\
+				gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
+				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
+				LightPos = mv_Mat * lightPos;\n\
+				FragPos = objMat * vec4(in_Position, 1.0);\n\
+				outUvs = uvs;\n\
+		}";
 
-	////Fragment Shader for the objects
-	//const char* cube_fragShader =
-	//	"#version 330\n\
-	//		in vec4 _Normal;\n\
-	//		in vec4 _FragPos;\n\
-	//		in vec2 _outUvs;\n\
-	//		out vec4 out_Color;\n\
-	//		uniform mat4 mv_Mat;\n\
-	//		uniform vec4 lightPos;\n\
-	//		uniform vec4 viewPos;\n\
-	//		uniform vec4 lightColor;\n\
-	//		uniform vec4 objectColor;\n\
-	//		uniform sampler2D diffuseTexture;\n\
-	//		void main() {\n\
-	//			////////////////// -Ambient\n\
-	//			float ambientStrength = 0.2f;\n\
-	//			vec4 ambient = ambientStrength * lightColor;\n\
-	//			////////////////// -Diffuse\n\
-	//			vec4 normalizedNormal = normalize(_Normal);\n\
-	//			vec4 lightDir = normalize(lightPos - _FragPos);\n\
-	//			float diffWithoutColor = max(dot(normalizedNormal, lightDir), 0.0f);\n\
-	//			vec4 diffuse = diffWithoutColor * lightColor;\n\
-	//			////////////////// -Specular\n\
-	//			float specularStrength = 1.0f;\n\
-	//			vec4 viewDir = normalize(viewPos - _FragPos);\n\
-	//			vec4 reflectDir = reflect(-lightDir, normalizedNormal);\n\
-	//			float specWithoutColor = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n\
-	//			vec4 specular = specularStrength * specWithoutColor * lightColor;\n\
-	//			////////////////// -Result\n\
-	//			vec4 result = ambient;\n\
-	//			//result += diffuse;\n\
-	//			//result += specular;\n\
-	//			result *= objectColor;\n\
-	//			vec4 textureColor = texture(diffuseTexture, _outUvs);\n\
-	//			out_Color = result /*+ textureColor*/;\n\
-	//	}";
+	//Fragment Shader for the objects
+	const char* cube_fragShader =
+		"#version 330\n\
+			in vec4 _Normal;\n\
+			in vec4 _FragPos;\n\
+			in vec2 _outUvs;\n\
+			out vec4 out_Color;\n\
+			uniform mat4 mv_Mat;\n\
+			uniform vec4 lightPos;\n\
+			uniform vec4 viewPos;\n\
+			uniform vec4 lightColor;\n\
+			uniform vec4 objectColor;\n\
+			uniform sampler2D diffuseTexture;\n\
+			void main() {\n\
+				////////////////// -Ambient\n\
+				float ambientStrength = 0.2f;\n\
+				vec4 ambient = ambientStrength * lightColor;\n\
+				////////////////// -Diffuse\n\
+				vec4 normalizedNormal = normalize(_Normal);\n\
+				vec4 lightDir = normalize(lightPos - _FragPos);\n\
+				float diffWithoutColor = max(dot(normalizedNormal, lightDir), 0.0f);\n\
+				vec4 diffuse = diffWithoutColor * lightColor;\n\
+				////////////////// -Specular\n\
+				float specularStrength = 1.0f;\n\
+				vec4 viewDir = normalize(viewPos - _FragPos);\n\
+				vec4 reflectDir = reflect(-lightDir, normalizedNormal);\n\
+				float specWithoutColor = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n\
+				vec4 specular = specularStrength * specWithoutColor * lightColor;\n\
+				////////////////// -Result\n\
+				vec4 result = ambient;\n\
+				//result += diffuse;\n\
+				//result += specular;\n\
+				result *= objectColor;\n\
+				vec4 textureColor = texture(diffuseTexture, _outUvs);\n\
+				out_Color = result /*+ textureColor*/;\n\
+		}";
 
-	//const char* cube_geomShader =
-	//	"#version 330\n\
-	//	layout(points) in;\n\
-	//	layout(triangle_strip, max_vertices = 3) out;\n\
-	//	out vec4 eyePos;\n\
-	//	out vec4 centerEyePos;\n\
-	//	out vec4 _FragPos;\n\
-	//	out vec3 _Normal;\n\
-	//	out vec2 _outUvs;\n\
-	//	uniform mat4 projMat;\n\
-	//	uniform vec3 vertexPositions[3];\n\
-	//	vec4 num_Verts[3];\n\
-	//	in vec4 FragPos[];\n\
-	//	in vec3 Normal[];\n\
-	//	in vec2 outUvs[];\n\
-	//	void main() {\n\
-	//	 vec3 n = normalize(-gl_in[0].gl_Position.xyz);\n\
-	//	 vec3 up = vec3(0.0, 1.0, 0.0);\n\
-	//	 vec3 u = normalize(cross(up, n));\n\
-	//	 vec3 v = normalize(cross(n, u));\n\
-	//	 num_Verts[0] = vec4(-vertexPositions[0].x*u - vertexPositions[0].x*v, 0.0);\n\
-	//	 num_Verts[1] = vec4( vertexPositions[1].y*u - vertexPositions[1].y*v, 0.0);\n\
-	//	 num_Verts[2] = vec4(-vertexPositions[2].z*u + vertexPositions[2].z*v, 0.0);\n\
-	//	 centerEyePos = gl_in[0].gl_Position;\n\
-	//	 for (int i = 0; i < 3; i++) {\n\
-	//			eyePos = (gl_in[0].gl_Position + num_Verts[i]); \n\
-	//			gl_Position = projMat * eyePos; \n\
-	//			_FragPos = FragPos[i];\n\
-	//			_Normal = Normal[i];\n\
-	//			_outUvs = outUvs[i];\n\
-	//			EmitVertex();\n\
-	//	 }\n\
-	//	 EndPrimitive(); \n\
-	//	}";
+	const char* cube_geomShader =
+		"#version 330\n\
+		layout(points) in;\n\
+		layout(triangle_strip, max_vertices = 3) out;\n\
+		out vec4 eyePos;\n\
+		out vec4 centerEyePos;\n\
+		out vec4 _FragPos;\n\
+		out vec3 _Normal;\n\
+		out vec2 _outUvs;\n\
+		uniform mat4 projMat;\n\
+		uniform vec3 vertexPositions[3];\n\
+		vec4 num_Verts[3];\n\
+		in vec4 FragPos[];\n\
+		in vec3 Normal[];\n\
+		in vec2 outUvs[];\n\
+		void main() {\n\
+		 vec3 n = normalize(-gl_in[0].gl_Position.xyz);\n\
+		 vec3 up = vec3(0.0, 1.0, 0.0);\n\
+		 vec3 u = normalize(cross(up, n));\n\
+		 vec3 v = normalize(cross(n, u));\n\
+		 num_Verts[0] = vec4(-vertexPositions[0].x*u - vertexPositions[0].x*v, 0.0);\n\
+		 num_Verts[1] = vec4( vertexPositions[1].y*u - vertexPositions[1].y*v, 0.0);\n\
+		 num_Verts[2] = vec4(-vertexPositions[2].z*u + vertexPositions[2].z*v, 0.0);\n\
+		 centerEyePos = gl_in[0].gl_Position;\n\
+		 for (int i = 0; i < 3; i++) {\n\
+				eyePos = (gl_in[0].gl_Position + num_Verts[i]); \n\
+				gl_Position = projMat * eyePos; \n\
+				_FragPos = FragPos[i];\n\
+				_Normal = Normal[i];\n\
+				_outUvs = outUvs[i];\n\
+				EmitVertex();\n\
+		 }\n\
+		 EndPrimitive(); \n\
+		}";
 #pragma endregion
 
 	bool loadOBJ(const char* path,
@@ -915,14 +923,14 @@ GLuint VAO;
 GLuint VBO;
 
 //Objects declaration
-//Object babyDragon;
-//Object brotherDragon;
-//Object sisterDragon;
-//Object mommyDragon;
-//Object daddyDragon;
-//Object ground;
+Object babyDragon;
+Object brotherDragon;
+Object sisterDragon;
+Object mommyDragon;
+Object daddyDragon;
+Object ground;
 //Object light;
-Object triangle;
+//Object triangle;
 
 void GLinit(int width, int height) {
 	glViewport(0, 0, width, height);
@@ -939,14 +947,14 @@ void GLinit(int width, int height) {
 	//Cube::setupCube();
 
 	//Objects inicialization
-	/*babyDragon.setupObject(Object::Type::DRAGON, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
+	babyDragon.setupObject(Object::Type::DRAGON, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
 	brotherDragon.setupObject(Object::Type::DRAGON, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
 	sisterDragon.setupObject(Object::Type::DRAGON, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
 	mommyDragon.setupObject(Object::Type::DRAGON, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
 	daddyDragon.setupObject(Object::Type::DRAGON, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
 	ground.setupObject(Object::Type::CUBE, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
-	light.setupObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));*/
-	triangle.setupObject(Object::Type::TRIANGLE);
+	//light.setupObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
+	//triangle.setupObject(Object::Type::TRIANGLE);
 	/////////////////////////////////////////////////////TODO
 	GLuint vertex_shader;
 	GLuint fragment_shader;
@@ -1037,14 +1045,14 @@ void GLrender(float dt) {
 	RV::_MVP = RV::_projection * RV::_modelView;
 
 	//Drawing of the scene objects
-	/*babyDragon.drawObject();
+	babyDragon.drawObject();
 	brotherDragon.drawObject();
 	sisterDragon.drawObject();
 	mommyDragon.drawObject();
 	daddyDragon.drawObject();
 	ground.drawObject();
-	light.drawObject(glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4( Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));*/
-	triangle.drawObject();
+	//light.drawObject(glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4( Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
+	//triangle.drawObject();
 	ImGui::Render();
 }
 
