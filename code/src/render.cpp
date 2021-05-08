@@ -484,8 +484,8 @@ private:
 
 		shaderStr[fsize] = 0;
 
-		//printf("\n\n%s: ", name);
-		//printf(shaderStr);
+		printf("\n\n%s: ", name);
+		printf(shaderStr);
 
 
 		GLuint shader = glCreateShader(shaderType);
@@ -1055,7 +1055,7 @@ void GLinit(int width, int height) {
 	//Cube::setupCube();
 
 	//Shaders inicialization
-	Shader phongShader = Shader("shaders/phongVertexShader.txt", "shaders/phongFragmentShader.txt", "shaders/phongGeometryShader.txt");
+	Shader phongShader = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShader.fs", "shaders/phongGeometryShader.gs");
 	phongShader.AddTextureID("resources/grassTexture.png");
 
 	//Objects inicialization
