@@ -503,7 +503,7 @@ public:
 			uniform mat4 mvpMat;\n\
 			uniform vec4 lightPos;\n\
 			void main() {\n\
-				gl_Position = mvpMat * objMat * vec4(in_Position.x + geomPos.x, in_Position.y + geomPos.y, in_Position.z + geomPos.z, 1.0);\n\
+				gl_Position = mvpMat * objMat * vec4(in_Position, 1.f);\n\
 				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
 				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
 				LightPos = mv_Mat * lightPos;\n\
@@ -553,22 +553,20 @@ public:
 		"#version 330\n\
 		layout(triangles) in;\n\
 		layout(triangle_strip, max_vertices = 3) out;\n\
-		vec4 epicenter(vec4 p1, vec4 p2, vec4 p3) {\n\
-		return p1;\n\
-		}\n\
+		uniform float translation;\n\
 		//in vec4 FragPos[];\n\
 		//in vec3 Normal[];\n\
 		//in vec2 outUvs[];\n\
-		vec4 eyePos;\n\
+		//vec4 eyePos;\n\
 		//out vec4 _FragPos;\n\
 		//out vec3 _Normal;\n\
 		//out vec2 _outUvs;\n\
-		out vec4 geomPos;\n\
-		uniform mat4 projMat;\n\
+		//out vec4 geomPos;\n\
+		//uniform mat4 projMat;\n\
 		//uniform vec3 vertexPositions[3];\n\
-		vec3 num_Verts[3];\n\
+		//vec3 num_Verts[3];\n\
 		void main() {\n\
-		 for (int i = 0; i < gl_in.length; i++) {\n\
+		 //for (int i = 0; i < gl_in.length; i++) {\n\
 				//gl_Position = projMat * gl_in[i].gl_Position;\n\
 				\n\
 				//geomPos = epicenter(gl_in[0].gl_Position,\n\
@@ -581,10 +579,40 @@ public:
 				//_FragPos = FragPos[i];\n\
 				//_Normal = Normal[i];\n\
 				//_outUvs = outUvs[i];\n\
-				EmitVertex();\n\
+				//EmitVertex();\n\
 		 //EndPrimitive(); \n\
-		 }\n\
-		 EndPrimitive(); \n\
+		 //}\n\
+		// Metemos las posiciones en variables con nombres menos engorrosos\n\
+		vec4 p1 = gl_in[0].gl_Position;\n\
+		vec4 p2 = gl_in[1].gl_Position; \n\
+		vec4 p3 = gl_in[2].gl_Position;\n\
+	\n\
+		// Calculem dos vectors de la cara mitjancant els tres vertexs donats\n\
+		vec3 vec_1 = vec3(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z);\n\
+		vec3 vec_2 = vec3(p1.x - p3.x, p1.y - p3.y, p1.z - p3.z);\n\
+	\n\
+		// Calcular el vector normal fent cross product dels dos vectors que pertanyen a la cara\n\
+		vec3 norm_vec = vec3( vec_1.y*vec_2.z - vec_1.z*vec_2.y, -1* (vec_1.x*vec_2.z - vec_1.z*vec_2.x), vec_1.x*vec_2.y - vec_1.y*vec_2.x );\n\
+	\n\
+		// Calculem el denominador per normalitzar el vector\n\
+		float denominator = sqrt(pow(norm_vec.x, 2) + pow(norm_vec.y, 2) + pow(norm_vec.z, 2));\n\
+	\n\
+		// Normalitzem i retornem el vector\n\
+		vec3 normal = vec3(norm_vec.x/denominator, norm_vec.y/denominator, norm_vec.z/denominator);\n\
+	\n\
+		normal *= translation;\n\
+	\n\
+		// Movem els 3 vertexs en la normal del triangle\n\
+		gl_Position = gl_in[0].gl_Position + vec4(normal, 1.f);\n\
+		EmitVertex();\n\
+	\n\
+		gl_Position = gl_in[1].gl_Position + vec4(normal, 1.f);\n\
+		EmitVertex();\n\
+	\n\
+		gl_Position = gl_in[2].gl_Position + vec4(normal, 1.f);\n\
+		EmitVertex();\n\
+	\n\
+			 EndPrimitive(); \n\
 		}";
 #pragma endregion
 
