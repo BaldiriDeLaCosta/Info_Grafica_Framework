@@ -568,7 +568,7 @@ public:
 		linkProgram(program);*/
 	}
 
-	void AddTexture(const char* texturePath) {
+	void AddTextureID(const char* texturePath) {
 		data = stbi_load(texturePath, &x, &y, &n, 4);
 		//stbi_image_free(data);
 		glGenTextures(1, &textureID); // Create the handle of the texture
@@ -576,6 +576,22 @@ public:
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //Configure some parameters
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); //Configure some parameters
+	}
+	void SetTextureID(unsigned int _textureID) {
+		textureID = _textureID;
+	}
+	static unsigned int CreateTextureID(const char* texturePath) {
+		unsigned int textureID;
+
+		data = stbi_load(texturePath, &x, &y, &n, 4);
+		//stbi_image_free(data);
+		glGenTextures(1, &textureID); // Create the handle of the texture
+		glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //Configure some parameters
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); //Configure some parameters
+
+		return textureID;
 	}
 
 	void UseProgram() {
@@ -1039,16 +1055,16 @@ void GLinit(int width, int height) {
 	//Cube::setupCube();
 
 	//Shaders inicialization
-	Shader tmpShader = Shader("shaders/phongVertexShader.txt", "shaders/phongFragmentShader.txt", "shaders/phongGeometryShader.txt");
-	tmpShader.AddTexture("resources/grassTexture.png");
+	Shader phongShader = Shader("shaders/phongVertexShader.txt", "shaders/phongFragmentShader.txt", "shaders/phongGeometryShader.txt");
+	phongShader.AddTextureID("resources/grassTexture.png");
 
 	//Objects inicialization
-	babyDragon.setupObject(Object::Type::DRAGON, tmpShader, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
-	brotherDragon.setupObject(Object::Type::DRAGON, tmpShader, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
-	sisterDragon.setupObject(Object::Type::DRAGON, tmpShader, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
-	mommyDragon.setupObject(Object::Type::DRAGON, tmpShader, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
-	daddyDragon.setupObject(Object::Type::DRAGON, tmpShader, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
-	ground.setupObject(Object::Type::CUBE, tmpShader, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
+	babyDragon.setupObject(Object::Type::DRAGON, phongShader, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
+	brotherDragon.setupObject(Object::Type::DRAGON, phongShader, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
+	sisterDragon.setupObject(Object::Type::DRAGON, phongShader, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
+	mommyDragon.setupObject(Object::Type::DRAGON, phongShader, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
+	daddyDragon.setupObject(Object::Type::DRAGON, phongShader, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
+	ground.setupObject(Object::Type::CUBE, phongShader, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
 	//light.setupObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
 	//triangle.setupObject(Object::Type::TRIANGLE);
 	/////////////////////////////////////////////////////TODO
