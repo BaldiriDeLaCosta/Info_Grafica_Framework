@@ -459,9 +459,15 @@ namespace Cube {
 
 class Shader {
 private:
+	GLuint program;
+	GLuint* shaders;
+	int shadersSize = 0;
+	unsigned int textureID;
+
 	/*const char* vertShader;
 	const char* fragShader;
 	const char* geomShader;*/
+
 
 	GLuint compileShaderFromFile(const char* shaderPath, GLenum shaderType, const char* name = "") {
 		//char* shaderStr = new char;
@@ -500,14 +506,12 @@ private:
 	}
 
 public:
-	GLuint program;
-	GLuint* shaders;
-	unsigned int textureID;
 	//unsigned int id;
 
 	Shader() {};
 	Shader(const char* vertexPath, const char* fragmentPath) {
-		shaders = new GLuint[2];
+		shadersSize = 2;
+		shaders = new GLuint[shadersSize];
 		shaders[0] = compileShaderFromFile(vertexPath, GL_VERTEX_SHADER, "vertexShader");
 		shaders[1] = compileShaderFromFile(fragmentPath, GL_FRAGMENT_SHADER, "fragmentShader");
 
@@ -522,7 +526,8 @@ public:
 		linkProgram(program);
 	}
 	Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath) {
-		shaders = new GLuint[3];
+		shadersSize = 3;
+		shaders = new GLuint[shadersSize];
 		shaders[0] = compileShaderFromFile(vertexPath, GL_VERTEX_SHADER, "vertexShader");
 		shaders[1] = compileShaderFromFile(fragmentPath, GL_FRAGMENT_SHADER, "fragmentShader");
 		shaders[2] = compileShaderFromFile(geometryPath, GL_GEOMETRY_SHADER, "geometryShader");
@@ -550,32 +555,52 @@ public:
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); //Configure some parameters
 	}
 
-	void use() {
-		////Textures
-		//glActiveTexture(GL_TEXTURE0);
-		//glBindTexture(GL_TEXTURE_2D, textureID);
-		//glUniform1i(glGetUniformLocation(program, "diffuseTexture"), 0);
-
-		//glUniformMatrix4fv(glGetUniformLocation(program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
-		//glUniformMatrix4fv(glGetUniformLocation(program, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
-		//glUniformMatrix4fv(glGetUniformLocation(program, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
-		//glUniform4f(glGetUniformLocation(program, "color"), 1.f, 0.1f, 1.f, 0.f);
-		//glUniform4f(glGetUniformLocation(program, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
-		//glUniform4f(glGetUniformLocation(program, "lightColor"), Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f);
-		//glUniform4f(glGetUniformLocation(program, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
-		//glUniform4f(glGetUniformLocation(program, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
-		//glm::vec3 vertexArray[3] = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
-		//glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
-		////objMat matrix modify
-		//objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
-		//glUniformMatrix4fv(glGetUniformLocation(shader.program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
-
-		//glUseProgram(0);
-
+	void UseProgram() {
+		glUseProgram(program);
 	}
 
+	void UseTexture() {
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glUniform1i(glGetUniformLocation(program, "diffuseTexture"), 0);
+	}
+
+	GLuint GetShader(int shaderPos) {
+		if (shaderPos >= shadersSize || shaderPos < 0)
+			return NULL;
+
+		return shaders[shaderPos];
+	}
+
+	int GetShadersSize() {
+		return shadersSize;
+	}
+
+	void Delete() {
+		glDeleteProgram(program);
+		glDeleteShader(shaders[0]);
+		glDeleteShader(shaders[1]);
+		glDeleteShader(shaders[2]);
+
+		glDeleteTextures(1, &textureID);
+	}
 
 	//setters for uniforms
+	void SetUniformsMats(const glm::mat4 &objMat) {
+		glUniformMatrix4fv(glGetUniformLocation(program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+		glUniformMatrix4fv(glGetUniformLocation(program, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+		glUniformMatrix4fv(glGetUniformLocation(program, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+	}
+
+	void SetUniformsLights(const glm::vec3 &objectColor) {
+		glUniform4f(glGetUniformLocation(program, "color"), 1.f, 0.1f, 1.f, 0.f);
+		glUniform4f(glGetUniformLocation(program, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
+		glUniform4f(glGetUniformLocation(program, "lightColor"), Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f);
+		glUniform4f(glGetUniformLocation(program, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
+		glUniform4f(glGetUniformLocation(program, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
+		glm::vec3 vertexArray[3] = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
+		glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
+	}
 
 };
 
@@ -878,11 +903,7 @@ public:
 		glDeleteBuffers(3, objectVbo);
 		glDeleteVertexArrays(1, &objectVao);
 
-		glDeleteProgram(shader.program);
-		glDeleteShader(shader.shaders[0]);
-		glDeleteShader(shader.shaders[1]);
-		glDeleteShader(shader.shaders[2]);
-		glDeleteTextures(1, &shader.textureID);
+		shader.Delete();
 	}
 
 	//void updateObject(const glm::mat4& transform) {
@@ -897,7 +918,7 @@ public:
 	void drawObject() {
 		if (available && enabled) {
 			glBindVertexArray(objectVao);
-			glUseProgram(shader.program);
+			//glUseProgram(shader.program);
 
 			////Textures
 			//glActiveTexture(GL_TEXTURE0);
@@ -918,28 +939,12 @@ public:
 			//objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
 			//glUniformMatrix4fv(glGetUniformLocation(shader.program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 
-			glDrawArrays(GL_POINTS, 0, vertices.size() * 3);
+			shader.UseProgram();
+			shader.UseTexture();
 
-			glUseProgram(0);
-			glBindVertexArray(0);
-		}
-	}
-	//Object drawing function with position & light color to update them at GLrender()
-	void drawObject(glm::vec3 currentPos, glm::vec4 _lightColor) {
-		if (available && enabled) {
-			glBindVertexArray(objectVao);
-			glUseProgram(shader.program);
-			glUniformMatrix4fv(glGetUniformLocation(shader.program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
-			glUniformMatrix4fv(glGetUniformLocation(shader.program, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
-			glUniformMatrix4fv(glGetUniformLocation(shader.program, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
-			glUniform4f(glGetUniformLocation(shader.program, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
-			glUniform4f(glGetUniformLocation(shader.program, "lightColor"), _lightColor.r, _lightColor.g, _lightColor.b, 1.0f);
-			glUniform4f(glGetUniformLocation(shader.program, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
-			glUniform4f(glGetUniformLocation(shader.program, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
-
-			//objMat matrix modify
-			objMat = glm::translate(glm::mat4(), currentPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
-			glUniformMatrix4fv(glGetUniformLocation(shader.program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+			objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
+			shader.SetUniformsMats(objMat);
+			shader.SetUniformsLights(objectColor);
 
 			glDrawArrays(GL_POINTS, 0, vertices.size() * 3);
 
@@ -947,6 +952,29 @@ public:
 			glBindVertexArray(0);
 		}
 	}
+	////Object drawing function with position & light color to update them at GLrender()
+	//void drawObject(glm::vec3 currentPos, glm::vec4 _lightColor) {
+	//	if (available && enabled) {
+	//		glBindVertexArray(objectVao);
+	//		glUseProgram(shader.program);
+	//		glUniformMatrix4fv(glGetUniformLocation(shader.program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+	//		glUniformMatrix4fv(glGetUniformLocation(shader.program, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+	//		glUniformMatrix4fv(glGetUniformLocation(shader.program, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+	//		glUniform4f(glGetUniformLocation(shader.program, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
+	//		glUniform4f(glGetUniformLocation(shader.program, "lightColor"), _lightColor.r, _lightColor.g, _lightColor.b, 1.0f);
+	//		glUniform4f(glGetUniformLocation(shader.program, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
+	//		glUniform4f(glGetUniformLocation(shader.program, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
+
+	//		//objMat matrix modify
+	//		objMat = glm::translate(glm::mat4(), currentPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
+	//		glUniformMatrix4fv(glGetUniformLocation(shader.program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+
+	//		glDrawArrays(GL_POINTS, 0, vertices.size() * 3);
+
+	//		glUseProgram(0);
+	//		glBindVertexArray(0);
+	//	}
+	//}
 };
 #pragma endregion
 
