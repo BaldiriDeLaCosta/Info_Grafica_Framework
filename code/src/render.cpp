@@ -554,19 +554,19 @@ public:
 		layout(triangles) in;\n\
 		layout(triangle_strip, max_vertices = 3) out;\n\
 		uniform float translation;\n\
-		//in vec4 FragPos[];\n\
-		//in vec3 Normal[];\n\
-		//in vec2 outUvs[];\n\
+		in vec4 FragPos[];\n\
+		in vec4 Normal[];\n\
+		in vec2 outUvs[];\n\
 		//vec4 eyePos;\n\
-		//out vec4 _FragPos;\n\
-		//out vec3 _Normal;\n\
-		//out vec2 _outUvs;\n\
+		out vec4 _FragPos;\n\
+		out vec4 _Normal;\n\
+		out vec2 _outUvs;\n\
 		//out vec4 geomPos;\n\
 		//uniform mat4 projMat;\n\
 		//uniform vec3 vertexPositions[3];\n\
 		//vec3 num_Verts[3];\n\
 		void main() {\n\
-		 //for (int i = 0; i < gl_in.length; i++) {\n\
+		 for (int i = 0; i < 3; i++) {\n\
 				//gl_Position = projMat * gl_in[i].gl_Position;\n\
 				\n\
 				//geomPos = epicenter(gl_in[0].gl_Position,\n\
@@ -576,12 +576,12 @@ public:
 				//num_Verts[i] = vertexPositions[i];\n\
 				//eyePos = (gl_in[i].gl_Position + vec4(num_Verts[i], 1.0)); \n\
 				//gl_Position = projMat * eyePos;\n\
-				//_FragPos = FragPos[i];\n\
-				//_Normal = Normal[i];\n\
-				//_outUvs = outUvs[i];\n\
+				_FragPos = FragPos[i];\n\
+				_Normal = Normal[i];\n\
+				_outUvs = outUvs[i];\n\
 				//EmitVertex();\n\
 		 //EndPrimitive(); \n\
-		 //}\n\
+		 }\n\
 		// Metemos las posiciones en variables con nombres menos engorrosos\n\
 		vec4 p1 = gl_in[0].gl_Position;\n\
 		vec4 p2 = gl_in[1].gl_Position; \n\
