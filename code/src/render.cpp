@@ -564,24 +564,27 @@ public:
 		//out vec3 _Normal;\n\
 		//out vec2 _outUvs;\n\
 		out vec4 geomPos;\n\
-		//uniform mat4 projMat;\n\
+		uniform mat4 projMat;\n\
 		//uniform vec3 vertexPositions[3];\n\
 		vec3 num_Verts[3];\n\
 		void main() {\n\
 		 for (int i = 0; i < gl_in.length; i++) {\n\
-				geomPos = epicenter(gl_in[0].gl_Position,\n\
-				gl_in[1].gl_Position,\n\
-				gl_in[2].gl_Position);\n\
+				//gl_Position = projMat * gl_in[i].gl_Position;\n\
+				\n\
+				//geomPos = epicenter(gl_in[0].gl_Position,\n\
+				//gl_in[1].gl_Position,\n\
+				//gl_in[2].gl_Position);\n\
+				\n\
 				//num_Verts[i] = vertexPositions[i];\n\
 				//eyePos = (gl_in[i].gl_Position + vec4(num_Verts[i], 1.0)); \n\
-				//gl_Position = projMat * eyePos; \n\
+				//gl_Position = projMat * eyePos;\n\
 				//_FragPos = FragPos[i];\n\
 				//_Normal = Normal[i];\n\
 				//_outUvs = outUvs[i];\n\
 				EmitVertex();\n\
-		 EndPrimitive(); \n\
-		 }\n\
 		 //EndPrimitive(); \n\
+		 }\n\
+		 EndPrimitive(); \n\
 		}";
 #pragma endregion
 
@@ -730,8 +733,8 @@ public:
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			
 			objectShaders[0] = compileShader(cube_vertShader, GL_VERTEX_SHADER, "cubeVert");
-			objectShaders[2] = compileShader(cube_geomShader, GL_GEOMETRY_SHADER, "cubeGeom");
 			objectShaders[1] = compileShader(cube_fragShader, GL_FRAGMENT_SHADER, "cubeFrag");
+			objectShaders[2] = compileShader(cube_geomShader, GL_GEOMETRY_SHADER, "cubeGeom");
 			
 			objectProgram = glCreateProgram();
 			glAttachShader(objectProgram, objectShaders[0]);
