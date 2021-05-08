@@ -484,8 +484,7 @@ private:
 
 		shaderStr[fsize] = 0;
 
-		printf("\n\n%s: ", name);
-		printf(shaderStr);
+		printf("\n\n%s: %s\n", name, shaderStr);
 
 
 		GLuint shader = glCreateShader(shaderType);
