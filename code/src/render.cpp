@@ -544,6 +544,29 @@ public:
 
 		linkProgram(program);
 	}
+	Shader(const Shader& s) {
+		textureID = s.textureID;
+		
+		//delete[] shaders;
+		shadersSize = s.shadersSize;
+		shaders = new GLuint[shadersSize];
+		for (int i = 0; i < shadersSize; i++) {
+			shaders[i] = s.shaders[i];
+		}
+
+		program = s.program;
+
+		/*program = glCreateProgram();
+		glAttachShader(program, shaders[0]);
+		glAttachShader(program, shaders[1]);
+		glAttachShader(program, shaders[2]);
+
+		glBindAttribLocation(program, 0, "in_Position");
+		glBindAttribLocation(program, 1, "in_Normal");
+		glBindAttribLocation(program, 2, "uvs");
+
+		linkProgram(program);*/
+	}
 
 	void AddTexture(const char* texturePath) {
 		data = stbi_load(texturePath, &x, &y, &n, 4);
@@ -821,7 +844,13 @@ public:
 	}
 
 	//Setup function for objects
-	void setupObject(Type _type, glm::vec3 _initPos = glm::vec3(0.f, 0.f, 0.f), float _rotation = 0.0f, glm::vec3 _rotationAxis = glm::vec3(1.f, 1.f, 1.f), glm::vec3 _modelSize = glm::vec3(1.f, 1.f, 1.f), glm::vec4 _objectColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f)) {
+	void setupObject(Type _type, const Shader &_shader, 
+		const glm::vec3	&_initPos = glm::vec3(0.f, 0.f, 0.f), 
+		const float		&_rotation = 0.0f, 
+		const glm::vec3 &_rotationAxis = glm::vec3(1.f, 1.f, 1.f), 
+		const glm::vec3 &_modelSize = glm::vec3(1.f, 1.f, 1.f), 
+		const glm::vec4 &_objectColor = glm::vec4(1.0f, 1.0f, 1.0f, 0.0f)) 
+	{
 		//Model loading depending on the passed parameter
 		switch (_type) {
 		case Type::DRAGON:
@@ -880,8 +909,9 @@ public:
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
-			shader = Shader("shaders/phongVertexShader.txt", "shaders/phongFragmentShader.txt", "shaders/phongGeometryShader.txt");
-			shader.AddTexture("resources/grassTexture.png");
+			shader = _shader;
+			//shader.AddTexture("resources/grassTexture.png");
+
 			
 			/*objectShaders[0] = compileShader(cube_vertShader, GL_VERTEX_SHADER, "cubeVert");
 			objectShaders[1] = compileShader(cube_fragShader, GL_FRAGMENT_SHADER, "cubeFrag");
@@ -1008,13 +1038,17 @@ void GLinit(int width, int height) {
 	//Axis::setupAxis();
 	//Cube::setupCube();
 
+	//Shaders inicialization
+	Shader tmpShader = Shader("shaders/phongVertexShader.txt", "shaders/phongFragmentShader.txt", "shaders/phongGeometryShader.txt");
+	tmpShader.AddTexture("resources/grassTexture.png");
+
 	//Objects inicialization
-	babyDragon.setupObject(Object::Type::DRAGON, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
-	brotherDragon.setupObject(Object::Type::DRAGON, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
-	sisterDragon.setupObject(Object::Type::DRAGON, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
-	mommyDragon.setupObject(Object::Type::DRAGON, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
-	daddyDragon.setupObject(Object::Type::DRAGON, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
-	ground.setupObject(Object::Type::CUBE, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
+	babyDragon.setupObject(Object::Type::DRAGON, tmpShader, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
+	brotherDragon.setupObject(Object::Type::DRAGON, tmpShader, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
+	sisterDragon.setupObject(Object::Type::DRAGON, tmpShader, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
+	mommyDragon.setupObject(Object::Type::DRAGON, tmpShader, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
+	daddyDragon.setupObject(Object::Type::DRAGON, tmpShader, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
+	ground.setupObject(Object::Type::CUBE, tmpShader, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
 	//light.setupObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
 	//triangle.setupObject(Object::Type::TRIANGLE);
 	/////////////////////////////////////////////////////TODO
