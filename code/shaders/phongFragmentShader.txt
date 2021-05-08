@@ -2,6 +2,7 @@
 	in vec4 _Normal;
 	in vec4 _FragPos;
 	in vec2 _outUvs;
+	//in vec3 geomPos;
 	out vec4 out_Color;
 	uniform mat4 mv_Mat;
 	uniform vec4 lightPos;
@@ -11,24 +12,24 @@
 	uniform sampler2D diffuseTexture;
 	
 	void main() {
-		////////////////// - Ambient
+		////////////////// -Ambient
 		float ambientStrength = 0.2f;
 		vec4 ambient = ambientStrength * lightColor;
-	
-		////////////////// - Diffuse
+		
+		////////////////// -Diffuse
 		vec4 normalizedNormal = normalize(_Normal);
 		vec4 lightDir = normalize(lightPos - _FragPos);
 		float diffWithoutColor = max(dot(normalizedNormal, lightDir), 0.0f);
 		vec4 diffuse = diffWithoutColor * lightColor;
 		
-		////////////////// - Specular
+		////////////////// -Specular
 		float specularStrength = 1.0f;
 		vec4 viewDir = normalize(viewPos - _FragPos);
 		vec4 reflectDir = reflect(-lightDir, normalizedNormal);
 		float specWithoutColor = pow(max(dot(viewDir, reflectDir), 0.0), 32);
 		vec4 specular = specularStrength * specWithoutColor * lightColor;
 		
-		////////////////// - Result
+		////////////////// -Result
 		vec4 result = ambient;
 		//result += diffuse;
 		//result += specular;
