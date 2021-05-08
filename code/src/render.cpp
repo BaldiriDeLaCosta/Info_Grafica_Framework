@@ -492,17 +492,18 @@ public:
 			in vec3 in_Position;\n\
 			in vec3 in_Normal;\n\
 			in vec2 uvs;\n\
+			in vec4 geomPos;\n\
 			out vec2 outUvs;\n\
+			out vec4 Normal;\n\
+			out vec4 FragPos;\n\
 			out vec4 vert_Normal;\n\
+			out vec4 LightPos;\n\
 			uniform mat4 objMat;\n\
 			uniform mat4 mv_Mat;\n\
 			uniform mat4 mvpMat;\n\
-			out vec4 Normal;\n\
-			out vec4 LightPos;\n\
-			out vec4 FragPos;\n\
 			uniform vec4 lightPos;\n\
 			void main() {\n\
-				gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);\n\
+				gl_Position = mvpMat * objMat * vec4(in_Position.x + geomPos.x, in_Position.y + geomPos.y, in_Position.z + geomPos.z, 1.0);\n\
 				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
 				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
 				LightPos = mv_Mat * lightPos;\n\
@@ -516,6 +517,7 @@ public:
 			in vec4 _Normal;\n\
 			in vec4 _FragPos;\n\
 			in vec2 _outUvs;\n\
+			//in vec3 geomPos;\n\
 			out vec4 out_Color;\n\
 			uniform mat4 mv_Mat;\n\
 			uniform vec4 lightPos;\n\
@@ -549,37 +551,37 @@ public:
 
 	const char* cube_geomShader =
 		"#version 330\n\
-		layout(points) in;\n\
+		layout(triangles) in;\n\
 		layout(triangle_strip, max_vertices = 3) out;\n\
-		out vec4 eyePos;\n\
-		out vec4 centerEyePos;\n\
-		out vec4 _FragPos;\n\
-		out vec3 _Normal;\n\
-		out vec2 _outUvs;\n\
-		uniform mat4 projMat;\n\
-		uniform vec3 vertexPositions[3];\n\
-		vec4 num_Verts[3];\n\
-		in vec4 FragPos[];\n\
-		in vec3 Normal[];\n\
-		in vec2 outUvs[];\n\
+		vec4 epicenter(vec4 p1, vec4 p2, vec4 p3) {\n\
+		return p1;\n\
+		}\n\
+		//in vec4 FragPos[];\n\
+		//in vec3 Normal[];\n\
+		//in vec2 outUvs[];\n\
+		vec4 eyePos;\n\
+		//out vec4 _FragPos;\n\
+		//out vec3 _Normal;\n\
+		//out vec2 _outUvs;\n\
+		out vec4 geomPos;\n\
+		//uniform mat4 projMat;\n\
+		//uniform vec3 vertexPositions[3];\n\
+		vec3 num_Verts[3];\n\
 		void main() {\n\
-		 vec3 n = normalize(-gl_in[0].gl_Position.xyz);\n\
-		 vec3 up = vec3(0.0, 1.0, 0.0);\n\
-		 vec3 u = normalize(cross(up, n));\n\
-		 vec3 v = normalize(cross(n, u));\n\
-		 num_Verts[0] = vec4(-vertexPositions[0].x*u - vertexPositions[0].x*v, 0.0);\n\
-		 num_Verts[1] = vec4( vertexPositions[1].y*u - vertexPositions[1].y*v, 0.0);\n\
-		 num_Verts[2] = vec4(-vertexPositions[2].z*u + vertexPositions[2].z*v, 0.0);\n\
-		 centerEyePos = gl_in[0].gl_Position;\n\
-		 for (int i = 0; i < 3; i++) {\n\
-				eyePos = (gl_in[0].gl_Position + num_Verts[i]); \n\
-				gl_Position = projMat * eyePos; \n\
-				_FragPos = FragPos[i];\n\
-				_Normal = Normal[i];\n\
-				_outUvs = outUvs[i];\n\
+		 for (int i = 0; i < gl_in.length; i++) {\n\
+				geomPos = epicenter(gl_in[0].gl_Position,\n\
+				gl_in[1].gl_Position,\n\
+				gl_in[2].gl_Position);\n\
+				//num_Verts[i] = vertexPositions[i];\n\
+				//eyePos = (gl_in[i].gl_Position + vec4(num_Verts[i], 1.0)); \n\
+				//gl_Position = projMat * eyePos; \n\
+				//_FragPos = FragPos[i];\n\
+				//_Normal = Normal[i];\n\
+				//_outUvs = outUvs[i];\n\
 				EmitVertex();\n\
-		 }\n\
 		 EndPrimitive(); \n\
+		 }\n\
+		 //EndPrimitive(); \n\
 		}";
 #pragma endregion
 
@@ -698,7 +700,9 @@ public:
 			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //Configure some parameters
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); //Configure some parameters
-			
+			//glProgramParameteri(objectProgram, GL_GEOMETRY_VERTICES_OUT, 3);
+			//glProgramParameteri(objectProgram, GL_GEOMETRY_INPUT_TYPE, GL_TRIANGLES);
+			//glProgramParameteri(objectProgram, GL_GEOMETRY_OUTPUT_TYPE, GL_TRIANGLE_STRIP);
 
 			glGenVertexArrays(1, &objectVao);
 			glBindVertexArray(objectVao);
@@ -780,12 +784,15 @@ public:
 			glUniform4f(glGetUniformLocation(objectProgram, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
 			glUniform4f(glGetUniformLocation(objectProgram, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
 			glm::vec3 vertexArray[3] = {glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f)};
-			glUniform3fv(glGetUniformLocation(objectProgram, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
+			glUniform3fv(glGetUniformLocation(objectProgram, "vertexPositions"), vertices.size(), glm::value_ptr(vertices[0]));
+			glUniform1i(glGetUniformLocation(objectProgram, "vertexSize"), vertices.size());
+			//printf("%i \n", vertices.size());113958
+			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "projMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
 			//objMat matrix modify
 			objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 
-			glDrawArrays(GL_POINTS, 0, vertices.size() * 3);
+			glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
 
 			glUseProgram(0);
 			glBindVertexArray(0);
@@ -808,7 +815,7 @@ public:
 			objMat = glm::translate(glm::mat4(), currentPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
 			glUniformMatrix4fv(glGetUniformLocation(objectProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 
-			glDrawArrays(GL_POINTS, 0, vertices.size() * 3);
+			glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
 
 			glUseProgram(0);
 			glBindVertexArray(0);
@@ -824,14 +831,14 @@ GLuint VAO;
 GLuint VBO;
 
 //Objects declaration
-//Object babyDragon;
-//Object brotherDragon;
-//Object sisterDragon;
-//Object mommyDragon;
-//Object daddyDragon;
-//Object ground;
-//Object light;
-Object triangle;
+Object babyDragon;
+Object brotherDragon;
+Object sisterDragon;
+Object mommyDragon;
+Object daddyDragon;
+Object ground;
+Object light;
+//Object triangle;
 
 void GLinit(int width, int height) {
 	glViewport(0, 0, width, height);
@@ -848,14 +855,14 @@ void GLinit(int width, int height) {
 	//Cube::setupCube();
 
 	//Objects inicialization
-	/*babyDragon.setupObject(Object::Type::DRAGON, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
+	babyDragon.setupObject(Object::Type::DRAGON, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
 	brotherDragon.setupObject(Object::Type::DRAGON, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
 	sisterDragon.setupObject(Object::Type::DRAGON, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
 	mommyDragon.setupObject(Object::Type::DRAGON, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
 	daddyDragon.setupObject(Object::Type::DRAGON, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
 	ground.setupObject(Object::Type::CUBE, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
-	light.setupObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));*/
-	triangle.setupObject(Object::Type::TRIANGLE);
+	light.setupObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
+	//triangle.setupObject(Object::Type::TRIANGLE);
 	/////////////////////////////////////////////////////TODO
 	GLuint vertex_shader;
 	GLuint fragment_shader;
@@ -946,14 +953,14 @@ void GLrender(float dt) {
 	RV::_MVP = RV::_projection * RV::_modelView;
 
 	//Drawing of the scene objects
-	/*babyDragon.drawObject();
+	babyDragon.drawObject();
 	brotherDragon.drawObject();
 	sisterDragon.drawObject();
 	mommyDragon.drawObject();
 	daddyDragon.drawObject();
 	ground.drawObject();
-	light.drawObject(glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4( Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));*/
-	triangle.drawObject();
+	light.drawObject(glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4( Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
+	//triangle.drawObject();
 	ImGui::Render();
 }
 
