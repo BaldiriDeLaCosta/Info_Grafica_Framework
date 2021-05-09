@@ -1,5 +1,52 @@
 #version 330
-	in vec3 in_Position;
+	layout (location = 0) in vec3 VertexPosition;
+	layout (location = 1) in vec3 VertexNormal;
+
+	out vec3 lightIntensity;
+
+	uniform struct lightIntensity;
+
+	uniform struct Light {
+		vec4 pos;
+		vec3 ambientL;
+		vec3 diffuseL;
+		vec3 specularL;
+	} light;
+
+	uniform struct Material {
+		vec3 ambientK;
+		vec3 diffuseK;
+		vec3 specularK;
+		float shininess;
+	} material;
+
+	uniform mat3 obj_Matrix;
+	uniform mat4 mv_Matrix;
+	//uniform mat4 proj_Matrix;
+	uniform mat4 mvp_Matrix;
+
+	void main() {
+		vec3 n = normalize(obj_Matrix * VertexNormal);
+		vec4 camCoords = mv_Matrix * vec4(VertexPosition, 1.0);
+		vec3 ambient = light.ambientL * material.ambientK;
+		vec3 s = normalize(vec3(light.pos - camCoords));
+		float sDotN = max(dot(s, n), 0.0);
+		vec3 diffuse = light.diffuseL * material.diffuseK * sDotN;
+		vec3 spec = vec3(0, 0);
+		if(sDotN > 0.0) {
+			vec3 v = normalize(-camCoords.xyz);
+			vec3 r = reflect(-s, n);
+			spec = light.specularL * material.specularK 
+				* pow(max(dor(r, v), 0.0), material.shininess);
+		}
+		
+		lightIntensity = ambient + diffuse + spec;
+		gl_Position = mvp_Matrix * vec4(VertexPosition, 1.0);
+	}
+
+
+
+	/*in vec3 in_Position;
 	in vec3 in_Normal;
 	in vec2 uvs;
 	in vec4 geomPos;
@@ -20,4 +67,4 @@
 		LightPos = mv_Mat * lightPos;
 		FragPos = objMat * vec4(in_Position, 1.0);
 		outUvs = uvs;
-	}
+	}*/

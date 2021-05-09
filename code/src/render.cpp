@@ -146,11 +146,48 @@ void linkProgram(GLuint program) {
 }
 
 ///////////////////////////////////////////////// LIGHT SOURCE
-namespace Light
+
+//struct Light {
+//	glm::vec4 pos;
+//	glm::vec3 ambientL;
+//	glm::vec3 diffuseL;
+//	glm::vec3 specularL;
+//
+//	Light() {};
+//	Light(glm::vec4 _pos, glm::vec3 _ambientL, glm::vec3 _diffuseL, glm::vec3 _specularL)
+//		: pos(_pos), ambientL(_ambientL), diffuseL(_diffuseL), specularL(_specularL) {};
+//};
+//
+//struct Material {
+//	glm::vec3 ambientK;
+//	glm::vec3 diffuseK;
+//	glm::vec3 specularK;
+//	float shininess;
+//
+//	Material() {};
+//	Material(glm::vec3 _ambientK, glm::vec3 _diffuseK, glm::vec3 _specularK, float _shininess)
+//		: ambientK(_ambientK), diffuseK(_diffuseK), specularK(_specularK), shininess(_shininess) {};
+//};
+
+namespace LightData
 {
-	glm::vec4 lightColor = glm::vec4(1.f, 1.f, 1.f, 1.f);
-	glm::vec4 lightPosition = glm::vec4(0.f, 5.f, -10.f, 0.0f);
+	//glm::vec4 lightColor = glm::vec4(1.f, 1.f, 1.f, 1.f);
+	//glm::vec4 lightPosition = glm::vec4(0.f, 5.f, -10.f, 0.0f);
+
+	glm::vec4 Pos = glm::vec4(0.f, 5.f, -10.f, 0.0f);
+	glm::vec3 AmbientL = glm::vec3(1.f, 1.f, 1.f);
+	glm::vec3 DiffuseL = glm::vec3(1.f, 1.f, 1.f);
+	glm::vec3 SpecularL = glm::vec3(1.f, 1.f, 1.f);
 }
+
+namespace MaterialData
+{
+	glm::vec3 AmbientK = glm::vec3(1.f, 1.f, 1.f);
+	glm::vec3 DiffuseK = glm::vec3(1.f, 1.f, 1.f);
+	glm::vec3 SpecularK = glm::vec3(1.f, 1.f, 1.f);
+	float Shininess = 255;
+}
+
 
 ////////////////////////////////////////////////// AXIS
 namespace Axis {
@@ -400,52 +437,52 @@ namespace Cube {
 	}
 	void drawTwoCubes()
 	{
-		float currentTime = ImGui::GetTime();
-		float cubeColor = currentTime;
-		float cubeScale = 1 - (float)sin(currentTime);
-		if ((float)sin(cubeColor) < 0) cubeColor = 0;
-		if (cubeScale < 1.f) cubeScale = 1.f;
+		//float currentTime = ImGui::GetTime();
+		//float cubeColor = currentTime;
+		//float cubeScale = 1 - (float)sin(currentTime);
+		//if ((float)sin(cubeColor) < 0) cubeColor = 0;
+		//if (cubeScale < 1.f) cubeScale = 1.f;
 
-		glEnable(GL_PRIMITIVE_RESTART);
-		//glm::mat4 TranslationMatrix = glm::translate(glm::mat4(), glm::vec3(-1.0f, 2.0f, 3.0f));
-		//objMat = TranslationMatrix;
+		//glEnable(GL_PRIMITIVE_RESTART);
+		////glm::mat4 TranslationMatrix = glm::translate(glm::mat4(), glm::vec3(-1.0f, 2.0f, 3.0f));
+		////objMat = TranslationMatrix;
 
-		glBindVertexArray(cubeVao);
-		glUseProgram(cubeProgram);
-		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
-		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
-		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
-		/*glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 0.5f+0.5f*sin(currentTime), 1.f, 0.f);
-		glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);*/
+		//glBindVertexArray(cubeVao);
+		//glUseProgram(cubeProgram);
+		//glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+		//glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+		//glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+		///*glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 0.5f+0.5f*sin(currentTime), 1.f, 0.f);
+		//glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);*/
 
-		////Translation matrix
-		//TranslationMatrix = glm::translate(glm::mat4(), glm::vec3(-1.0f, 2.0f, 3.0f));
-		////Scale Matrix
-		//glm::mat4 ScaleMatrix = glm::scale(glm::mat4(), glm::vec3(2, 2, 2));
-		////Rotation Matrix
-		//glm::mat4 RotationMatrix = glm::rotate(glm::mat4(), currentTime * 3.f, glm::vec3(0.0f, 1.0f, 0.0f));
+		//////Translation matrix
+		////TranslationMatrix = glm::translate(glm::mat4(), glm::vec3(-1.0f, 2.0f, 3.0f));
+		//////Scale Matrix
+		////glm::mat4 ScaleMatrix = glm::scale(glm::mat4(), glm::vec3(2, 2, 2));
+		//////Rotation Matrix
+		////glm::mat4 RotationMatrix = glm::rotate(glm::mat4(), currentTime * 3.f, glm::vec3(0.0f, 1.0f, 0.0f));
 
-		////Secondary Translation Matrix
-		//glm::mat4 TranslationMatrix2 = glm::translate(glm::mat4(), glm::vec3(3.0f, 0.0f, 0.0f));
+		//////Secondary Translation Matrix
+		////glm::mat4 TranslationMatrix2 = glm::translate(glm::mat4(), glm::vec3(3.0f, 0.0f, 0.0f));
 
-		////Les operacions amb matrius es fan d'esquerra a dreta -->
-		////la llògica es fa de dreta a esquerra <--
-		//objMat = TranslationMatrix * RotationMatrix * TranslationMatrix2 * ScaleMatrix;
+		//////Les operacions amb matrius es fan d'esquerra a dreta -->
+		//////la llògica es fa de dreta a esquerra <--
+		////objMat = TranslationMatrix * RotationMatrix * TranslationMatrix2 * ScaleMatrix;
 
-		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
-		glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 1.f, 1.f, 0.f);
-		glUniform4f(glGetUniformLocation(cubeProgram, "ambient"), Light::lightColor.r * 0.4f, Light::lightColor.g * 0.4f, Light::lightColor.b * 0.4f, 0.0f);
-		glUniform4f(glGetUniformLocation(cubeProgram, "diffuse"), 1.0f, 1.0f, 1.0f, 1.0f);
-		glUniform4f(glGetUniformLocation(cubeProgram, "directional_light"), 0.0f, 3.0f, 0.0f, 1.0f);
-		glUniform3f(glGetUniformLocation(cubeProgram, "CameraPos"), -RV::panv[0], -RV::panv[1], -RV::panv[2]);
-		glUniform4f(glGetUniformLocation(cubeProgram, "specular"), 1.0f, 1.0f, 1.0f, 1.0f);
+		//glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+		//glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 1.f, 1.f, 0.f);
+		//glUniform4f(glGetUniformLocation(cubeProgram, "ambient"), Light::lightColor.r * 0.4f, Light::lightColor.g * 0.4f, Light::lightColor.b * 0.4f, 0.0f);
+		//glUniform4f(glGetUniformLocation(cubeProgram, "diffuse"), 1.0f, 1.0f, 1.0f, 1.0f);
+		//glUniform4f(glGetUniformLocation(cubeProgram, "directional_light"), 0.0f, 3.0f, 0.0f, 1.0f);
+		//glUniform3f(glGetUniformLocation(cubeProgram, "CameraPos"), -RV::panv[0], -RV::panv[1], -RV::panv[2]);
+		//glUniform4f(glGetUniformLocation(cubeProgram, "specular"), 1.0f, 1.0f, 1.0f, 1.0f);
 
 
-		glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
+		//glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);
 
-		glUseProgram(0);
-		glBindVertexArray(0);
-		glDisable(GL_PRIMITIVE_RESTART);
+		//glUseProgram(0);
+		//glBindVertexArray(0);
+		//glDisable(GL_PRIMITIVE_RESTART);
 	}
 }
 
@@ -610,21 +647,40 @@ public:
 
 	//setters for uniforms
 	void SetUniformsMats(const glm::mat4& objMat) {
-		glUniformMatrix4fv(glGetUniformLocation(program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
-		glUniformMatrix4fv(glGetUniformLocation(program, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
-		glUniformMatrix4fv(glGetUniformLocation(program, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+		glUniformMatrix4fv(glGetUniformLocation(program, "obj_Matrix"), 1, GL_FALSE, glm::value_ptr(objMat));
+		glUniformMatrix4fv(glGetUniformLocation(program, "mv_Matrix"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+		glUniformMatrix4fv(glGetUniformLocation(program, "mvp_Matrix"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+
+
+		//glUniformMatrix4fv(glGetUniformLocation(program, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
+		//glUniformMatrix4fv(glGetUniformLocation(program, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+		//glUniformMatrix4fv(glGetUniformLocation(program, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
 	}
 
-	void SetUniformsLights(const glm::vec3& objectColor) {
-		glUniform4f(glGetUniformLocation(program, "color"), 1.f, 0.1f, 1.f, 0.f);
+	void SetUniformsLights(const glm::vec3& objectColor, const glm::vec3& lightColor = LightData::AmbientL) {
+		// ToDo: El problema podria estar aqui, al intentar accedir a una struct...
+		glUniform4f(glGetUniformLocation(program, "light.pos"), LightData::Pos.x, LightData::Pos.y, LightData::Pos.z, LightData::Pos.w);
+		glUniform3f(glGetUniformLocation(program, "light.ambientL"), objectColor.r, objectColor.g, objectColor.b);
+		glUniform3f(glGetUniformLocation(program, "light.diffuseL"), LightData::DiffuseL.x, LightData::DiffuseL.y, LightData::DiffuseL.z);
+		glUniform3f(glGetUniformLocation(program, "light.specularL"), LightData::SpecularL.x, LightData::SpecularL.y, LightData::SpecularL.z);
+
+		glUniform3f(glGetUniformLocation(program, "material.ambientK"), MaterialData::AmbientK.x, MaterialData::AmbientK.y, MaterialData::AmbientK.z);
+		glUniform3f(glGetUniformLocation(program, "material.diffuseK"), MaterialData::DiffuseK.x, MaterialData::DiffuseK.y, MaterialData::DiffuseK.z);
+		glUniform3f(glGetUniformLocation(program, "material.specularK"), MaterialData::SpecularK.x, MaterialData::SpecularK.y, MaterialData::SpecularK.z);
+		glUniform1f(glGetUniformLocation(program, "material.shininess"), MaterialData::Shininess);
+
+
+		/*glUniform4f(glGetUniformLocation(program, "color"), 1.f, 0.1f, 1.f, 0.f);
 		glUniform4f(glGetUniformLocation(program, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
 		glUniform4f(glGetUniformLocation(program, "lightColor"), Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f);
 		glUniform4f(glGetUniformLocation(program, "lightPos"), Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z, Light::lightPosition.w);
 		glUniform4f(glGetUniformLocation(program, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
+
+		// ToDo: O potser el problema podria estar aqui, perque no reb els VertexPositions i NormalPositions...
 		glm::vec3 vertexArray[3] = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
-		glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
+		glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));*/
 	}
-	void SetUniformsLights(const glm::vec3& objectColor, const glm::vec3& lightColor) {
+	/*void SetUniformsLights(const glm::vec3& objectColor, const glm::vec3& lightColor) {
 		glUniform4f(glGetUniformLocation(program, "color"), 1.f, 0.1f, 1.f, 0.f);
 		glUniform4f(glGetUniformLocation(program, "objectColor"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
 		glUniform4f(glGetUniformLocation(program, "lightColor"), lightColor.r, lightColor.g, lightColor.b, 1.0f);
@@ -632,7 +688,7 @@ public:
 		glUniform4f(glGetUniformLocation(program, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
 		glm::vec3 vertexArray[3] = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
 		glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
-	}
+	}*/
 
 };
 
@@ -1177,7 +1233,8 @@ void GLinit(int width, int height) {
 	mommyDragon.setupObject(Object::Type::DRAGON, phongShader, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
 	daddyDragon.setupObject(Object::Type::DRAGON, phongShader, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
 	ground.setupObject(Object::Type::CUBE, phongShader, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
-	light.setupObject(Object::Type::CUBE, phongShader, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
+	light.setupObject(Object::Type::CUBE, phongShader, glm::vec3(LightData::Pos.x, LightData::Pos.y, LightData::Pos.z), 0.f, 
+		glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(LightData::AmbientL.r, LightData::AmbientL.g, LightData::AmbientL.b, 1.0f));
 	
 	Shader BBShader = Shader("shaders/BBVertexShader.txt", "shaders/BBFragmentShader.txt", "shaders/BBGeometryShader.txt");
 	triangle.setupObject(Object::Type::TRIANGLE, BBShader);
@@ -1277,7 +1334,8 @@ void GLrender(float dt) {
 	mommyDragon.drawObject(Object::Type::DRAGON);
 	daddyDragon.drawObject(Object::Type::DRAGON);
 	ground.drawObject(Object::Type::CUBE);
-	light.drawObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
+	light.drawObject(Object::Type::CUBE, glm::vec3(LightData::Pos.x, LightData::Pos.y, LightData::Pos.z), 
+		glm::vec4(LightData::AmbientL.r, LightData::AmbientL.g, LightData::AmbientL.b, 1.0f));
 	triangle.drawObject(Object::Type::TRIANGLE);
 	ImGui::Render();
 }
@@ -1293,13 +1351,13 @@ void GUI() {
 		ImGui::Checkbox("Dolly Effect", &dollyEffectActive);
 		ImGui::SliderFloat("Dolly Effect Slider", &RV::panv[2], -16.f, -6.f);
 		//Light position slider modifiers
-		ImGui::SliderFloat("Light X Position", &Light::lightPosition.x, -20.f, 20.f);
-		ImGui::SliderFloat("Light Y Position", &Light::lightPosition.y, -20.f, 20.f);
-		ImGui::SliderFloat("Light Z Position", &Light::lightPosition.z, -20.f, 20.f);
+		ImGui::SliderFloat("Light X Position", &LightData::Pos.x, -20.f, 20.f);
+		ImGui::SliderFloat("Light Y Position", &LightData::Pos.y, -20.f, 20.f);
+		ImGui::SliderFloat("Light Z Position", &LightData::Pos.z, -20.f, 20.f);
 		//Light color slider modifiers
-		ImGui::SliderFloat("Light R Color", &Light::lightColor.r, 0.f, 1.f);
-		ImGui::SliderFloat("Light G Color", &Light::lightColor.g, 0.f, 1.f);
-		ImGui::SliderFloat("Light B Color", &Light::lightColor.b, 0.f, 1.f);
+		ImGui::SliderFloat("Light R Color", &LightData::AmbientL.r, 0.f, 1.f);
+		ImGui::SliderFloat("Light G Color", &LightData::AmbientL.g, 0.f, 1.f);
+		ImGui::SliderFloat("Light B Color", &LightData::AmbientL.b, 0.f, 1.f);
 		/////////////////////////////////////////////////////////
 	}
 	// .........................

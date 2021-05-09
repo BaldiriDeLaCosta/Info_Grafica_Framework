@@ -1,5 +1,14 @@
 #version 330
-	in vec4 _Normal;
+	in vec3 lightIntensity;
+	layout (location = 0) out vec4 fragColor;
+	
+	void main() {
+		fragColor = vec4(lightIntensity, 1.0);
+	}
+
+
+
+	/*in vec4 _Normal;
 	in vec4 _FragPos;
 	in vec2 _outUvs;
 	//in vec3 geomPos;
@@ -35,5 +44,5 @@
 		//result += specular;
 		result *= objectColor;
 		vec4 textureColor = texture(diffuseTexture, _outUvs);
-		out_Color = result /*+ textureColor*/;
-	}
+		out_Color = result + textureColor;
+	}*/
