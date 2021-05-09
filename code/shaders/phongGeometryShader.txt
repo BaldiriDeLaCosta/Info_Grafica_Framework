@@ -2,6 +2,7 @@
 	layout(triangles) in;
 	layout(triangle_strip, max_vertices = 3) out;
 	uniform float translation;
+	uniform float deltaTime;
 	in vec4 FragPos[];
 	in vec4 Normal[];
 	in vec2 outUvs[];
@@ -50,7 +51,7 @@
 		// Normalitzem i retornem el vector
 		vec3 normal = vec3(norm_vec.x/denominator, norm_vec.y/denominator, norm_vec.z/denominator);
 	
-		normal *= translation;
+		normal *= deltaTime;
 	
 		// Movem els 3 vertexs en la normal del triangle
 		gl_Position = gl_in[0].gl_Position + vec4(normal, 1.f);
