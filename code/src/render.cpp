@@ -482,7 +482,41 @@ public:
 	glm::vec4 objectColor;
 
 
+	GLuint compileShaderFromFile(const char* shaderPath, GLenum shaderType, const char* name = "") {
+		//char* shaderStr = new char;
 
+		//Checker for the file being open
+		FILE* file = fopen(shaderPath, "rb");
+		fseek(file, 0, SEEK_END);
+		long fsize = ftell(file);
+		fseek(file, 0, SEEK_SET);
+
+		char* shaderStr = (char*)malloc(fsize + 1);
+		fread(shaderStr, fsize, 1, file);
+		fclose(file);
+
+		shaderStr[fsize] = 0;
+
+		//printf("\n\n%s: ", name);
+		//printf(shaderStr);
+
+
+		GLuint shader = glCreateShader(shaderType);
+		glShaderSource(shader, 1, &shaderStr, NULL);
+		glCompileShader(shader);
+		GLint res;
+		glGetShaderiv(shader, GL_COMPILE_STATUS, &res);
+		if (res == GL_FALSE) {
+			glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &res);
+			char* buff = new char[res];
+			glGetShaderInfoLog(shader, res, &res, buff);
+			fprintf(stderr, "Error Shader %s: %s", name, buff);    //Error aqui
+			delete[] buff;
+			glDeleteShader(shader);
+			return 0;
+		}
+		return shader;
+	}
 
 
 #pragma region cubeShaders
@@ -613,6 +647,131 @@ public:
 		EmitVertex();\n\
 	\n\
 			 EndPrimitive(); \n\
+		}";
+#pragma endregion
+
+#pragma region cubeShadersBB
+	const char* cube_vertShaderBB =
+		"#version 330\n\
+			in vec3 in_Position;\n\
+			in vec3 in_Normal;\n\
+			in vec2 uvs;\n\
+			in vec4 geomPos;\n\
+			out vec2 outUvs;\n\
+			out vec4 Normal;\n\
+			out vec4 FragPos;\n\
+			out vec4 vert_Normal;\n\
+			out vec4 LightPos;\n\
+			uniform mat4 objMat;\n\
+			uniform mat4 mv_Mat;\n\
+			uniform mat4 mvpMat;\n\
+			uniform vec4 lightPos;\n\
+			uniform vec4 in_Color;\n\
+			out Vertex	{ vec4 color; } vertex;\n\
+			void main() {\n\
+				gl_Position = mvpMat * objMat * vec4(in_Position, 1.f);\n\
+				vertex.color = in_Color;\n\
+				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
+				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
+				LightPos = mv_Mat * lightPos;\n\
+				FragPos = objMat * vec4(in_Position, 1.0);\n\
+				outUvs = uvs;\n\
+		}";
+
+	const char* cube_fragShaderBB =
+		"#version 330\n\
+			in vec4 _Normal;\n\
+			in vec4 _FragPos;\n\
+			in vec2 _outUvs;\n\
+			in vec2 Vertex_UV;\n\
+			in vec4 Vertex_Color;\n\
+			//in vec3 geomPos;\n\
+			out vec4 out_Color;\n\
+			uniform mat4 mv_Mat;\n\
+			uniform vec4 lightPos;\n\
+			uniform vec4 viewPos;\n\
+			uniform vec4 lightColor;\n\
+			uniform vec4 objectColor;\n\
+			uniform sampler2D diffuseTexture;\n\
+			void main() {\n\
+				vec2 uv = Vertex_UV.xy;\n\
+				uv.y *= -1.0;\n\
+				////////////////// -Ambient\n\
+				float ambientStrength = 0.2f;\n\
+				vec4 ambient = ambientStrength * lightColor;\n\
+				////////////////// -Diffuse\n\
+				vec4 normalizedNormal = normalize(_Normal);\n\
+				vec4 lightDir = normalize(lightPos - _FragPos);\n\
+				float diffWithoutColor = max(dot(normalizedNormal, lightDir), 0.0f);\n\
+				vec4 diffuse = diffWithoutColor * lightColor;\n\
+				////////////////// -Specular\n\
+				float specularStrength = 1.0f;\n\
+				vec4 viewDir = normalize(viewPos - _FragPos);\n\
+				vec4 reflectDir = reflect(-lightDir, normalizedNormal);\n\
+				float specWithoutColor = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n\
+				vec4 specular = specularStrength * specWithoutColor * lightColor;\n\
+				////////////////// -Result\n\
+				vec4 result = ambient;\n\
+				//result += diffuse;\n\
+				//result += specular;\n\
+				result *= objectColor;\n\
+				vec4 textureColor = texture(diffuseTexture, _outUvs);\n\
+				//out_Color = result /*+ textureColor*/;\n\
+				out_Color = textureColor * Vertex_Color;\n\
+		}";
+
+	const char* cube_geomShaderBB =
+		"#version 330\n\
+		layout (points) in;\n\
+		layout(triangle_strip) out;\n\
+		layout(max_vertices = 4) out;\n\
+\n\
+		uniform mat4 mvpMat;\n\
+\n\
+		uniform float point_size;\n\
+\n\
+		in Vertex\n\
+		{\n\
+		  vec4 color;\n\
+		} vertex[];\n\
+\n\
+\n\
+		out vec2 Vertex_UV;\n\
+		out vec4 Vertex_Color;\n\
+\n\
+		void main(void)\n\
+		{\n\
+			vec4 P = gl_in[0].gl_Position;\n\
+\n\
+			// a: Esquerra-Inferior \n\
+			vec2 va = P.xy + vec2(-0.5, -0.5) * point_size;\n\
+			gl_Position = mvpMat * vec4(va, P.zw);\n\
+			Vertex_UV = vec2(0.0, 0.0);\n\
+			Vertex_Color = vertex[0].color;\n\
+			EmitVertex();\n\
+\n\
+			// b: Esquerra-Superior\n\
+			vec2 vb = P.xy + vec2(-0.5, 0.5) * point_size;\n\
+			gl_Position = mvpMat * vec4(vb, P.zw);\n\
+			Vertex_UV = vec2(0.0, 1.0);\n\
+			Vertex_Color = vertex[0].color;\n\
+			EmitVertex();\n\
+\n\
+			// d: Dreta-Inferior\n\
+			vec2 vd = P.xy + vec2(0.5, -0.5) * point_size;\n\
+			gl_Position = mvpMat * vec4(vd, P.zw);\n\
+			Vertex_UV = vec2(1.0, 0.0);\n\
+			Vertex_Color = vertex[0].color;\n\
+			EmitVertex();\n\
+\n\
+			// c: Dreta-Superior\n\
+			vec2 vc = P.xy + vec2(0.5, 0.5) * point_size;\n\
+			gl_Position = mvpMat * vec4(vc, P.zw);\n\
+			Vertex_UV = vec2(1.0, 1.0);\n\
+			Vertex_Color = vertex[0].color; \n\
+			EmitVertex();\n\
+\n\
+			EndPrimitive();\n\
 		}";
 #pragma endregion
 
@@ -760,10 +919,14 @@ public:
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 			
-			objectShaders[0] = compileShader(cube_vertShader, GL_VERTEX_SHADER, "cubeVert");
-			objectShaders[1] = compileShader(cube_fragShader, GL_FRAGMENT_SHADER, "cubeFrag");
-			objectShaders[2] = compileShader(cube_geomShader, GL_GEOMETRY_SHADER, "cubeGeom");
+			//objectShaders[0] = compileShader(cube_vertShader, GL_VERTEX_SHADER, "cubeVert");
+			//objectShaders[1] = compileShader(cube_fragShader, GL_FRAGMENT_SHADER, "cubeFrag");
+			//objectShaders[2] = compileShader(cube_geomShader, GL_GEOMETRY_SHADER, "cubeGeom");
 			
+			objectShaders[0] = compileShaderFromFile("shaders/phongVertexShader.txt", GL_VERTEX_SHADER, "vertexShader");
+			objectShaders[1] = compileShaderFromFile("shaders/phongFragmentShader.txt", GL_FRAGMENT_SHADER, "fragmentShader");
+			objectShaders[2] = compileShaderFromFile("shaders/phongGeometryShader.txt", GL_GEOMETRY_SHADER, "geometryShader");
+
 			objectProgram = glCreateProgram();
 			glAttachShader(objectProgram, objectShaders[0]);
 			glAttachShader(objectProgram, objectShaders[1]);
