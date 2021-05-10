@@ -780,7 +780,7 @@ public:
 		//Model loading depending on the passed parameter
 		switch (_type) {
 		case Type::CHARACTER:
-			available = loadOBJ("resources/dragon.obj.txt", vertices, uvs, normals);
+			available = loadOBJ("resources/among_us.obj.txt", vertices, uvs, normals);
 			break;
 		case Type::CUBE:
 			available = loadOBJ("resources/cube.obj.txt", vertices, uvs, normals);
@@ -936,21 +936,21 @@ void GLinit(int width, int height) {
 	//Cube::setupCube();
 
 	//Init Shaders
-	Shader phongShader = Shader("shaders/phongVertexShader.txt", "shaders/phongFragmentShader.txt", "shaders/phongGeometryShader.txt");
-	phongShader.AddTextureID("resources/grassTexture.png");
+	Shader phongShader = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShader.fs", "shaders/phongGeometryShader.gs");
+	phongShader.AddTextureID("resources/Plastic_4K_Diffuse.jpg");
 
-	Shader staticPhongShader = Shader("shaders/phongVertexShader.txt", "shaders/phongFragmentShader.txt", "shaders/phongGeometryShader.txt");
+	Shader staticPhongShader = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShader.fs", "shaders/phongGeometryShader.gs");
 	staticPhongShader.AddTextureID("resources/grassTexture.png");
 
-	Shader BBShader = Shader("shaders/BBVertexShader.txt", "shaders/BBFragmentShader.txt", "shaders/BBGeometryShader.txt");
+	Shader BBShader = Shader("shaders/BBVertexShader.vs", "shaders/BBFragmentShader.fs", "shaders/BBGeometryShader.gs");
 	BBShader.AddTextureID("resources/Sun.png");
 
 	//Objects inicialization
-	babyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
-	brotherCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
-	sisterCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
-	mommyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
-	daddyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
+	babyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.02f, 0.02f, 0.02f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
+	brotherCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.03f, 0.03f, 0.03f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
+	sisterCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.03f, 0.03f, 0.03f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
+	mommyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.1f, 0.1f, 0.1f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
+	daddyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.09f, 0.09f, 0.09f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
 	
 	ground.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
 	light.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
