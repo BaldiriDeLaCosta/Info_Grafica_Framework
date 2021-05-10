@@ -3,35 +3,12 @@
 	layout(triangle_strip, max_vertices = 3) out;
 	uniform float translation;
 	uniform float deltaTime;
-	in vec4 FragPos[];
-	in vec4 Normal[];
 	in vec2 outUvs[];
-	//vec4 eyePos;
-	out vec4 _FragPos;
-	out vec4 _Normal;
+	in vec3 lightIntensity[];
 	out vec2 _outUvs;
-	//out vec4 geomPos;
-	//uniform mat4 projMat;
-	//uniform vec3 vertexPositions[3];
-	//vec3 num_Verts[3];
+	out vec3 _lightIntensity;
 	
 	void main() {
-		for (int i = 0; i < 3; i++) {
-			//gl_Position = projMat * gl_in[i].gl_Position;
-		
-			//geomPos = epicenter(gl_in[0].gl_Position,
-			//gl_in[1].gl_Position,
-			//gl_in[2].gl_Position);
-		
-			//num_Verts[i] = vertexPositions[i];
-			//eyePos = (gl_in[i].gl_Position + vec4(num_Verts[i], 1.0));
-			//gl_Position = projMat * eyePos;
-			_FragPos = FragPos[i];
-			_Normal = Normal[i];
-			_outUvs = outUvs[i];
-			//EmitVertex();
-			//EndPrimitive();
-		}
 	
 		// Metemos las posiciones en variables con nombres menos engorrosos
 		vec4 p1 = gl_in[0].gl_Position;
@@ -54,14 +31,24 @@
 		normal *= deltaTime;
 	
 		// Movem els 3 vertexs en la normal del triangle
-		gl_Position = gl_in[0].gl_Position + vec4(normal, 1.f);
-		EmitVertex();
-	
-		gl_Position = gl_in[1].gl_Position + vec4(normal, 1.f);
-		EmitVertex();
-		
-		gl_Position = gl_in[2].gl_Position + vec4(normal, 1.f);
-		EmitVertex();
-		
-		EndPrimitive();
+        gl_Position = gl_in[0].gl_Position + vec4(normal, 1.f);
+        _outUvs = outUvs[0];
+		_lightIntensity = lightIntensity[0];
+        EmitVertex();
+
+        gl_Position = gl_in[1].gl_Position + vec4(normal, 1.f);
+        _outUvs = outUvs[1];
+		_lightIntensity = lightIntensity[1];
+        EmitVertex();
+
+        gl_Position = gl_in[2].gl_Position + vec4(normal, 1.f);
+        _outUvs = outUvs[2];
+		_lightIntensity = lightIntensity[2];
+        EmitVertex();
+
+        EndPrimitive();
 	}
+	
+	
+	
+	
