@@ -451,6 +451,9 @@ namespace Cube {
 }
 
 /////////////////////////////////////////////////
+//Explosion Effect
+bool startExplosion = false;
+//Exploding effect
 float startTime, actualTime, deltaTime;
 
 
@@ -683,262 +686,6 @@ public:
 	glm::vec3 modelSize;
 	glm::vec4 objectColor;
 
-#pragma region cubeShaders
-	//Vertex Shader for the objects
-	const char* cube_vertShader =
-		"#version 330\n\
-			in vec3 in_Position;\n\
-			in vec3 in_Normal;\n\
-			in vec2 uvs;\n\
-			in vec4 geomPos;\n\
-			out vec2 outUvs;\n\
-			out vec4 Normal;\n\
-			out vec4 FragPos;\n\
-			out vec4 vert_Normal;\n\
-			out vec4 LightPos;\n\
-			uniform mat4 objMat;\n\
-			uniform mat4 mv_Mat;\n\
-			uniform mat4 mvpMat;\n\
-			uniform vec4 lightPos;\n\
-			void main() {\n\
-				gl_Position = mvpMat * objMat * vec4(in_Position, 1.f);\n\
-				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
-				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
-				LightPos = mv_Mat * lightPos;\n\
-				FragPos = objMat * vec4(in_Position, 1.0);\n\
-				outUvs = uvs;\n\
-		}";
-
-	//Fragment Shader for the objects
-	const char* cube_fragShader =
-		"#version 330\n\
-			in vec4 _Normal;\n\
-			in vec4 _FragPos;\n\
-			in vec2 _outUvs;\n\
-			//in vec3 geomPos;\n\
-			out vec4 out_Color;\n\
-			uniform mat4 mv_Mat;\n\
-			uniform vec4 lightPos;\n\
-			uniform vec4 viewPos;\n\
-			uniform vec4 lightColor;\n\
-			uniform vec4 objectColor;\n\
-			uniform sampler2D diffuseTexture;\n\
-			void main() {\n\
-				////////////////// -Ambient\n\
-				float ambientStrength = 0.2f;\n\
-				vec4 ambient = ambientStrength * lightColor;\n\
-				////////////////// -Diffuse\n\
-				vec4 normalizedNormal = normalize(_Normal);\n\
-				vec4 lightDir = normalize(lightPos - _FragPos);\n\
-				float diffWithoutColor = max(dot(normalizedNormal, lightDir), 0.0f);\n\
-				vec4 diffuse = diffWithoutColor * lightColor;\n\
-				////////////////// -Specular\n\
-				float specularStrength = 1.0f;\n\
-				vec4 viewDir = normalize(viewPos - _FragPos);\n\
-				vec4 reflectDir = reflect(-lightDir, normalizedNormal);\n\
-				float specWithoutColor = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n\
-				vec4 specular = specularStrength * specWithoutColor * lightColor;\n\
-				////////////////// -Result\n\
-				vec4 result = ambient;\n\
-				//result += diffuse;\n\
-				//result += specular;\n\
-				result *= objectColor;\n\
-				vec4 textureColor = texture(diffuseTexture, _outUvs);\n\
-				out_Color = result /*+ textureColor*/;\n\
-		}";
-
-	const char* cube_geomShader =
-		"#version 330\n\
-		layout(triangles) in;\n\
-		layout(triangle_strip, max_vertices = 3) out;\n\
-		uniform float translation;\n\
-		in vec4 FragPos[];\n\
-		in vec4 Normal[];\n\
-		in vec2 outUvs[];\n\
-		//vec4 eyePos;\n\
-		out vec4 _FragPos;\n\
-		out vec4 _Normal;\n\
-		out vec2 _outUvs;\n\
-		//out vec4 geomPos;\n\
-		//uniform mat4 projMat;\n\
-		//uniform vec3 vertexPositions[3];\n\
-		//vec3 num_Verts[3];\n\
-		void main() {\n\
-		 for (int i = 0; i < 3; i++) {\n\
-				//gl_Position = projMat * gl_in[i].gl_Position;\n\
-				\n\
-				//geomPos = epicenter(gl_in[0].gl_Position,\n\
-				//gl_in[1].gl_Position,\n\
-				//gl_in[2].gl_Position);\n\
-				\n\
-				//num_Verts[i] = vertexPositions[i];\n\
-				//eyePos = (gl_in[i].gl_Position + vec4(num_Verts[i], 1.0)); \n\
-				//gl_Position = projMat * eyePos;\n\
-				_FragPos = FragPos[i];\n\
-				_Normal = Normal[i];\n\
-				_outUvs = outUvs[i];\n\
-				//EmitVertex();\n\
-		 //EndPrimitive(); \n\
-		 }\n\
-		// Metemos las posiciones en variables con nombres menos engorrosos\n\
-		vec4 p1 = gl_in[0].gl_Position;\n\
-		vec4 p2 = gl_in[1].gl_Position; \n\
-		vec4 p3 = gl_in[2].gl_Position;\n\
-	\n\
-		// Calculem dos vectors de la cara mitjancant els tres vertexs donats\n\
-		vec3 vec_1 = vec3(p2.x - p1.x, p2.y - p1.y, p2.z - p1.z);\n\
-		vec3 vec_2 = vec3(p1.x - p3.x, p1.y - p3.y, p1.z - p3.z);\n\
-	\n\
-		// Calcular el vector normal fent cross product dels dos vectors que pertanyen a la cara\n\
-		vec3 norm_vec = vec3( vec_1.y*vec_2.z - vec_1.z*vec_2.y, -1* (vec_1.x*vec_2.z - vec_1.z*vec_2.x), vec_1.x*vec_2.y - vec_1.y*vec_2.x );\n\
-	\n\
-		// Calculem el denominador per normalitzar el vector\n\
-		float denominator = sqrt(pow(norm_vec.x, 2) + pow(norm_vec.y, 2) + pow(norm_vec.z, 2));\n\
-	\n\
-		// Normalitzem i retornem el vector\n\
-		vec3 normal = vec3(norm_vec.x/denominator, norm_vec.y/denominator, norm_vec.z/denominator);\n\
-	\n\
-		normal *= translation;\n\
-	\n\
-		// Movem els 3 vertexs en la normal del triangle\n\
-		gl_Position = gl_in[0].gl_Position + vec4(normal, 1.f);\n\
-		EmitVertex();\n\
-	\n\
-		gl_Position = gl_in[1].gl_Position + vec4(normal, 1.f);\n\
-		EmitVertex();\n\
-	\n\
-		gl_Position = gl_in[2].gl_Position + vec4(normal, 1.f);\n\
-		EmitVertex();\n\
-	\n\
-			 EndPrimitive(); \n\
-		}";
-#pragma endregion
-
-#pragma region cubeShadersBB
-	const char* cube_vertShaderBB =
-		"#version 330\n\
-			in vec3 in_Position;\n\
-			in vec3 in_Normal;\n\
-			in vec2 uvs;\n\
-			in vec4 geomPos;\n\
-			out vec2 outUvs;\n\
-			out vec4 Normal;\n\
-			out vec4 FragPos;\n\
-			out vec4 vert_Normal;\n\
-			out vec4 LightPos;\n\
-			uniform mat4 objMat;\n\
-			uniform mat4 mv_Mat;\n\
-			uniform mat4 mvpMat;\n\
-			uniform vec4 lightPos;\n\
-			uniform vec4 in_Color;\n\
-			out Vertex	{ vec4 color; } vertex;\n\
-			void main() {\n\
-				gl_Position = mvpMat * objMat * vec4(in_Position, 1.f);\n\
-				vertex.color = in_Color;\n\
-				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);\n\
-				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;\n\
-				LightPos = mv_Mat * lightPos;\n\
-				FragPos = objMat * vec4(in_Position, 1.0);\n\
-				outUvs = uvs;\n\
-		}";
-
-	const char* cube_fragShaderBB =
-		"#version 330\n\
-			in vec4 _Normal;\n\
-			in vec4 _FragPos;\n\
-			in vec2 _outUvs;\n\
-			in vec2 Vertex_UV;\n\
-			in vec4 Vertex_Color;\n\
-			//in vec3 geomPos;\n\
-			out vec4 out_Color;\n\
-			uniform mat4 mv_Mat;\n\
-			uniform vec4 lightPos;\n\
-			uniform vec4 viewPos;\n\
-			uniform vec4 lightColor;\n\
-			uniform vec4 objectColor;\n\
-			uniform sampler2D diffuseTexture;\n\
-			void main() {\n\
-				vec2 uv = Vertex_UV.xy;\n\
-				uv.y *= -1.0;\n\
-				////////////////// -Ambient\n\
-				float ambientStrength = 0.2f;\n\
-				vec4 ambient = ambientStrength * lightColor;\n\
-				////////////////// -Diffuse\n\
-				vec4 normalizedNormal = normalize(_Normal);\n\
-				vec4 lightDir = normalize(lightPos - _FragPos);\n\
-				float diffWithoutColor = max(dot(normalizedNormal, lightDir), 0.0f);\n\
-				vec4 diffuse = diffWithoutColor * lightColor;\n\
-				////////////////// -Specular\n\
-				float specularStrength = 1.0f;\n\
-				vec4 viewDir = normalize(viewPos - _FragPos);\n\
-				vec4 reflectDir = reflect(-lightDir, normalizedNormal);\n\
-				float specWithoutColor = pow(max(dot(viewDir, reflectDir), 0.0), 32);\n\
-				vec4 specular = specularStrength * specWithoutColor * lightColor;\n\
-				////////////////// -Result\n\
-				vec4 result = ambient;\n\
-				//result += diffuse;\n\
-				//result += specular;\n\
-				result *= objectColor;\n\
-				vec4 textureColor = texture(diffuseTexture, _outUvs);\n\
-				//out_Color = result /*+ textureColor*/;\n\
-				out_Color = textureColor * Vertex_Color;\n\
-		}";
-
-	const char* cube_geomShaderBB =
-		"#version 330\n\
-		layout (points) in;\n\
-		layout(triangle_strip) out;\n\
-		layout(max_vertices = 4) out;\n\
-\n\
-		uniform mat4 mvpMat;\n\
-\n\
-		uniform float point_size;\n\
-\n\
-		in Vertex\n\
-		{\n\
-		  vec4 color;\n\
-		} vertex[];\n\
-\n\
-\n\
-		out vec2 Vertex_UV;\n\
-		out vec4 Vertex_Color;\n\
-\n\
-		void main(void)\n\
-		{\n\
-			vec4 P = gl_in[0].gl_Position;\n\
-\n\
-			// a: Esquerra-Inferior \n\
-			vec2 va = P.xy + vec2(-0.5, -0.5) * point_size;\n\
-			gl_Position = mvpMat * vec4(va, P.zw);\n\
-			Vertex_UV = vec2(0.0, 0.0);\n\
-			Vertex_Color = vertex[0].color;\n\
-			EmitVertex();\n\
-\n\
-			// b: Esquerra-Superior\n\
-			vec2 vb = P.xy + vec2(-0.5, 0.5) * point_size;\n\
-			gl_Position = mvpMat * vec4(vb, P.zw);\n\
-			Vertex_UV = vec2(0.0, 1.0);\n\
-			Vertex_Color = vertex[0].color;\n\
-			EmitVertex();\n\
-\n\
-			// d: Dreta-Inferior\n\
-			vec2 vd = P.xy + vec2(0.5, -0.5) * point_size;\n\
-			gl_Position = mvpMat * vec4(vd, P.zw);\n\
-			Vertex_UV = vec2(1.0, 0.0);\n\
-			Vertex_Color = vertex[0].color;\n\
-			EmitVertex();\n\
-\n\
-			// c: Dreta-Superior\n\
-			vec2 vc = P.xy + vec2(0.5, 0.5) * point_size;\n\
-			gl_Position = mvpMat * vec4(vc, P.zw);\n\
-			Vertex_UV = vec2(1.0, 1.0);\n\
-			Vertex_Color = vertex[0].color; \n\
-			EmitVertex();\n\
-\n\
-			EndPrimitive();\n\
-		}";
-#pragma endregion
-
 	bool loadOBJ(const char* path,
 		std::vector < glm::vec3 >& out_vertices,
 		std::vector < glm::vec2 >& out_uvs,
@@ -1040,7 +787,7 @@ public:
 			break;
 		case Type::QUAD:
 			available = true;
-			vertices.push_back(glm::vec3(0.f, 4.f, 0.f));
+			vertices.push_back(glm::vec3(0.f, 7.f, -10.f));
 			uvs.push_back(glm::vec2(0.5f, 0.5f));
 			normals.push_back(glm::vec3(0.f, 0.f, 1.f));
 
@@ -1127,7 +874,7 @@ public:
 		}
 	}
 	//Object drawing function with position & light color to update them at GLrender()
-	void drawObject(Type _type, glm::vec3 currentPos, glm::vec4 _lightColor) {
+	void drawObject(Type _type, glm::vec3 currentPos, glm::vec4 _lightColor = Light::lightColor) {
 		if (available && enabled) {
 			glBindVertexArray(objectVao);
 
@@ -1273,7 +1020,7 @@ void GLcleanup() {
 	// ...
 	/////////////////////////////////////////////////////////
 }
-bool dollyEffectActive = true;
+bool dollyEffectActive = false;
 void InverseDollyEffect()
 {
 	//Function to change the Field of View depending on the distance to the focus point & to the width of the scene
@@ -1285,8 +1032,12 @@ void GLrender(float dt) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	actualTime = clock();
-	//deltaTime += (actualTime - startTime) / 10000;
-	startTime = actualTime;
+	
+	if (startExplosion)
+	{
+		deltaTime += (actualTime - startTime) / 1000;
+	}
+	startTime = clock();
 
 	//Dolly effect
 	if (dollyEffectActive)
@@ -1324,16 +1075,30 @@ void GUI() {
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		/////////////////////////////////////////////////////TODO
 		//Dolly effect checkbox & slider
-		ImGui::Checkbox("Dolly Effect", &dollyEffectActive);
-		ImGui::SliderFloat("Dolly Effect Slider", &RV::panv[2], -16.f, -6.f);
+		//ImGui::Checkbox("Dolly Effect", &dollyEffectActive);
+		//ImGui::SliderFloat("Dolly Effect Slider", &RV::panv[2], -16.f, -6.f);
 		//Light position slider modifiers
-		ImGui::SliderFloat("Light X Position", &Light::lightPosition.x, -20.f, 20.f);
-		ImGui::SliderFloat("Light Y Position", &Light::lightPosition.y, -20.f, 20.f);
-		ImGui::SliderFloat("Light Z Position", &Light::lightPosition.z, -20.f, 20.f);
+		if (ImGui::CollapsingHeader("Exploding Effect"))
+		{
+			ImGui::Checkbox("Start Explosion", &startExplosion);
+			ImGui::SliderFloat("Manual Explosion Effect", &deltaTime, 0.f, 100.f);
+			//ImGui::SliderFloat("Billboard X Position", &BillboardPos.x, -40.f, 40.f);
+			//ImGui::SliderFloat("Billboard Y Position", &BillboardPos.y, -40.f, 40.f);
+			//ImGui::SliderFloat("Billboard Z Position", &BillboardPos.z, -40.f, 40.f);
+		}
+		if (ImGui::CollapsingHeader("Light Position"))
+		{
+			ImGui::SliderFloat("Light X Position", &Light::lightPosition.x, -20.f, 20.f);
+			ImGui::SliderFloat("Light Y Position", &Light::lightPosition.y, -20.f, 20.f);
+			ImGui::SliderFloat("Light Z Position", &Light::lightPosition.z, -20.f, 20.f);
+		}
 		//Light color slider modifiers
-		ImGui::SliderFloat("Light R Color", &Light::lightColor.r, 0.f, 1.f);
-		ImGui::SliderFloat("Light G Color", &Light::lightColor.g, 0.f, 1.f);
-		ImGui::SliderFloat("Light B Color", &Light::lightColor.b, 0.f, 1.f);
+		if (ImGui::CollapsingHeader("Light Color"))
+		{
+			ImGui::SliderFloat("Light R Color", &Light::lightColor.r, 0.f, 1.f);
+			ImGui::SliderFloat("Light G Color", &Light::lightColor.g, 0.f, 1.f);
+			ImGui::SliderFloat("Light B Color", &Light::lightColor.b, 0.f, 1.f);
+		}
 		/////////////////////////////////////////////////////////
 	}
 	// .........................
