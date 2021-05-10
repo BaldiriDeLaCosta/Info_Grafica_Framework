@@ -2,11 +2,8 @@
 		layout (points) in;
 		layout(triangle_strip, max_vertices = 4) out;
 
+		uniform mat4 mv_Mat;
 		uniform mat4 mvpMat;
-
-		uniform float point_size;
-
-		uniform vec4 pointPos;
 
 		in Vertex
 		{
@@ -19,36 +16,44 @@
 
 		void main(void)
 		{
-			gl_in[0].gl_Position= vec4(0.0, 4.0, 0.0, 1.0);
-			vec4 P = gl_in[0].gl_Position;
-
-			// a: Esquerra-Inferior 
-			vec2 va = P.xy + vec2(-0.5, -0.5) * point_size;
-			gl_Position = mvpMat * vec4(va, P.zw);
-			Vertex_UV = vec2(0.0, 0.0);
-			Vertex_Color = vertex[0].color;
-			EmitVertex();
-
+			//vec4 P = gl_in[0].gl_Position;
+			vec3 right = vec3(mv_Mat[0][0], mv_Mat[1][0], mv_Mat[2][0]);
+			vec3 up = vec3(mv_Mat[0][1], mv_Mat[1][1], mv_Mat[2][1]);
+			
+			vec3 P = gl_in[0].gl_Position.xyz;
+			
 			// b: Esquerra-Superior
-			vec2 vb = P.xy + vec2(-0.5, 0.5) * point_size;
-			gl_Position = mvpMat * vec4(vb, P.zw);
+			vec4 vb = vec4(P + right * -2.0 + up * 2.0, 1.0);
+			gl_Position = mvpMat * vb;
+			//gl_Position = mvpMat * P + right * (-2.0) + up * (2.0);
 			Vertex_UV = vec2(0.0, 1.0);
 			Vertex_Color = vertex[0].color;
 			EmitVertex();
 
-			// d: Dreta-Inferior
-			vec2 vd = P.xy + vec2(0.5, -0.5) * point_size;
-			gl_Position = mvpMat * vec4(vd, P.zw);
-			Vertex_UV = vec2(1.0, 0.0);
+			// a: Esquerra-Inferior 
+			vec4 va = vec4(P + right * -2.0 + up * -2.0, 1.0);
+			gl_Position = mvpMat * va;
+			//gl_Position = mvpMat * P + right * (-2.0) + up * (-2.0);
+			Vertex_UV = vec2(0.0, 0.0);
 			Vertex_Color = vertex[0].color;
 			EmitVertex();
 
 			// c: Dreta-Superior
-			vec2 vc = P.xy + vec2(0.5, 0.5) * point_size;
-			gl_Position = mvpMat * vec4(vc, P.zw);
+			vec4 vc = vec4(P + right * 2.0 + up * 2.0, 1.0);
+			gl_Position = mvpMat * vc;
+			//gl_Position = P + right * (2.0) + up * (2.0);
 			Vertex_UV = vec2(1.0, 1.0);
 			Vertex_Color = vertex[0].color; 
 			EmitVertex();
+
+			// d: Dreta-Inferior
+			vec4 vd = vec4(P + right * 2.0 + up * -2.0, 1.0);
+			gl_Position = mvpMat * vd;
+			//gl_Position = P + right * (2.0) + up * (-2.0);
+			Vertex_UV = vec2(1.0, 0.0);
+			Vertex_Color = vertex[0].color;
+			EmitVertex();
+			
 
 			EndPrimitive();
 		}

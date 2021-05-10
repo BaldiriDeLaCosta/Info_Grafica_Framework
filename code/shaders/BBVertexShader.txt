@@ -15,7 +15,7 @@
 			uniform vec4 in_Color;
 			out Vertex	{ vec4 color; } vertex;
 			void main() {
-				gl_Position = mvpMat * objMat * vec4(in_Position, 1.f);
+				gl_Position = vec4(in_Position, 1.f);
 				vertex.color = in_Color;
 				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);
 				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;

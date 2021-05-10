@@ -566,8 +566,8 @@ public:
 		glGenTextures(1, &textureID); // Create the handle of the texture
 		glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //Configure some parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); //Configure some parameters
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 	}
 	void SetTextureID(unsigned int _textureID) {
 		textureID = _textureID;
@@ -580,8 +580,8 @@ public:
 		glGenTextures(1, &textureID); // Create the handle of the texture
 		glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
 		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST); //Configure some parameters
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST); //Configure some parameters
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
 		return textureID;
 	}
@@ -631,6 +631,7 @@ public:
 		glUniform4f(glGetUniformLocation(program, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
 		glm::vec3 vertexArray[3] = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
 		glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
+		glUniform4f(glGetUniformLocation(program, "in_Color"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
 	}
 	void SetUniformsLights(const glm::vec3& objectColor, const glm::vec3& lightColor) {
 		glUniform4f(glGetUniformLocation(program, "color"), 1.f, 0.1f, 1.f, 0.f);
@@ -640,6 +641,7 @@ public:
 		glUniform4f(glGetUniformLocation(program, "viewPos"), RV::panv[0], RV::panv[1], RV::panv[2], 0);
 		glm::vec3 vertexArray[3] = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
 		glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
+		glUniform4f(glGetUniformLocation(program, "in_Color"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
 	}
 
 };
@@ -1022,7 +1024,7 @@ public:
 	//Setup function for objects
 	void setupObject(Type _type,
 		const Shader& _shader,
-		glm::vec3 _initPos = glm::vec3(0.f, 0.f, 0.f),
+		glm::vec3 _initPos = glm::vec3(0.f, 0.f, 0.5f),
 		float _rotation = 0.0f,
 		glm::vec3 _rotationAxis = glm::vec3(1.f, 1.f, 1.f),
 		glm::vec3 _modelSize = glm::vec3(1.f, 1.f, 1.f),
@@ -1038,9 +1040,9 @@ public:
 			break;
 		case Type::QUAD:
 			available = true;
-			vertices = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
-			uvs.push_back(glm::vec2(0.f, 0.f));
-			normals.push_back(glm::vec3(0.f, 0.f, 0.f));
+			vertices.push_back(glm::vec3(0.f, 4.f, 0.f));
+			uvs.push_back(glm::vec2(0.5f, 0.5f));
+			normals.push_back(glm::vec3(0.f, 0.f, 1.f));
 
 		default:;
 
@@ -1110,10 +1112,15 @@ public:
 			shader.SetUniformsMats(objMat);
 			shader.SetUniformsLights(objectColor);
 
+			if (_type == Type::CHARACTER)
+				glUniform1f(glGetUniformLocation(shader.GetProgram(), "deltaTime"), deltaTime);
+			else
+				glUniform1f(glGetUniformLocation(shader.GetProgram(), "deltaTime"), 0);
+
 			if (_type == Type::CHARACTER || _type == Type::CUBE)
 				glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
 			else if (_type == Type::QUAD)
-				glDrawArrays(GL_TRIANGLES, 0, 1);
+				glDrawArrays(GL_POINTS, 0, 1);
 
 			glUseProgram(0);
 			glBindVertexArray(0);
@@ -1131,12 +1138,15 @@ public:
 			shader.SetUniformsMats(objMat);
 			shader.SetUniformsLights(objectColor, _lightColor);
 
-			glUniform1f(glGetUniformLocation(shader.GetProgram(), "deltaTime"), deltaTime);
+			if(_type == Type::CHARACTER)
+				glUniform1f(glGetUniformLocation(shader.GetProgram(), "deltaTime"), deltaTime);
+			else
+				glUniform1f(glGetUniformLocation(shader.GetProgram(), "deltaTime"), 0);
 
 			if (_type == Type::CHARACTER || _type == Type::CUBE)
 				glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
 			else if (_type == Type::QUAD)
-				glDrawArrays(GL_TRIANGLES, 0, 1);
+				glDrawArrays(GL_POINTS, 0, 1);
 
 			glUseProgram(0);
 			glBindVertexArray(0);
@@ -1182,6 +1192,11 @@ void GLinit(int width, int height) {
 	Shader phongShader = Shader("shaders/phongVertexShader.txt", "shaders/phongFragmentShader.txt", "shaders/phongGeometryShader.txt");
 	phongShader.AddTextureID("resources/grassTexture.png");
 
+	Shader staticPhongShader = Shader("shaders/phongVertexShader.txt", "shaders/phongFragmentShader.txt", "shaders/phongGeometryShader.txt");
+	staticPhongShader.AddTextureID("resources/grassTexture.png");
+
+	Shader BBShader = Shader("shaders/BBVertexShader.txt", "shaders/BBFragmentShader.txt", "shaders/BBGeometryShader.txt");
+	BBShader.AddTextureID("resources/Sun.png");
 
 	//Objects inicialization
 	babyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.2f, 0.2f, 0.2f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
@@ -1189,10 +1204,10 @@ void GLinit(int width, int height) {
 	sisterCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.3f, 0.3f, 0.3f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
 	mommyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
 	daddyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.9f, 0.9f, 0.9f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
-	ground.setupObject(Object::Type::CUBE, phongShader, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
-	light.setupObject(Object::Type::CUBE, phongShader, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
 	
-	Shader BBShader = Shader("shaders/BBVertexShader.txt", "shaders/BBFragmentShader.txt", "shaders/BBGeometryShader.txt");
+	ground.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
+	light.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
+		
 	Quad.setupObject(Object::Type::QUAD, BBShader);
 	/////////////////////////////////////////////////////TODO
 	GLuint vertex_shader;
@@ -1290,13 +1305,13 @@ void GLrender(float dt) {
 	RV::_MVP = RV::_projection * RV::_modelView;
 
 	//Drawing of the scene objects
-	babyCharacter.drawObject(Object::Type::CHARACTER);
-	brotherCharacter.drawObject(Object::Type::CHARACTER);
-	sisterCharacter.drawObject(Object::Type::CHARACTER);
+	//babyCharacter.drawObject(Object::Type::CHARACTER);
+	//brotherCharacter.drawObject(Object::Type::CHARACTER);
+	//sisterCharacter.drawObject(Object::Type::CHARACTER);
 	mommyCharacter.drawObject(Object::Type::CHARACTER);
 	daddyCharacter.drawObject(Object::Type::CHARACTER);
-	ground.drawObject(Object::Type::CUBE);
-	light.drawObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
+	//ground.drawObject(Object::Type::CUBE);
+	//light.drawObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
 	Quad.drawObject(Object::Type::QUAD);
 	ImGui::Render();
 }
