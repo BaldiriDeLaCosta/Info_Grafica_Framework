@@ -13,6 +13,12 @@
 
 		out vec2 Vertex_UV;
 		out vec4 Vertex_Color;
+		
+		in vec4 Normal[];
+		in vec4 FragPos[];
+		out vec4 _Normal;
+		out vec4 _FragPos;
+		
 
 		void main(void)
 		{
@@ -21,6 +27,9 @@
 			vec3 up = vec3(mv_Mat[0][1], mv_Mat[1][1], mv_Mat[2][1]);
 			
 			vec3 P = gl_in[0].gl_Position.xyz;
+			
+			_Normal = Normal[0];
+			_FragPos = FragPos[0];
 			
 			// b: Esquerra-Superior
 			vec4 vb = vec4(P + right * -2.0 + up * 2.0, 1.0);
