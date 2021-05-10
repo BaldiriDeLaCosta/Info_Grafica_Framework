@@ -16,24 +16,7 @@
 	//vec3 num_Verts[3];
 	
 	void main() {
-		for (int i = 0; i < 3; i++) {
-			//gl_Position = projMat * gl_in[i].gl_Position;
-		
-			//geomPos = epicenter(gl_in[0].gl_Position,
-			//gl_in[1].gl_Position,
-			//gl_in[2].gl_Position);
-		
-			//num_Verts[i] = vertexPositions[i];
-			//eyePos = (gl_in[i].gl_Position + vec4(num_Verts[i], 1.0));
-			//gl_Position = projMat * eyePos;
-			_FragPos = FragPos[i];
-			_Normal = Normal[i];
-			_outUvs = outUvs[i];
-			//EmitVertex();
-			//EndPrimitive();
-		}
-	
-		// Metemos las posiciones en variables con nombres menos engorrosos
+		// Fiquem les posicions en variables amb noms menys engorrosos
 		vec4 p1 = gl_in[0].gl_Position;
 		vec4 p2 = gl_in[1].gl_Position;
 		vec4 p3 = gl_in[2].gl_Position;
@@ -55,12 +38,21 @@
 	
 		// Movem els 3 vertexs en la normal del triangle
 		gl_Position = gl_in[0].gl_Position + vec4(normal, 1.f);
+			_FragPos = FragPos[0];
+			_Normal = Normal[0];
+			_outUvs = outUvs[0];
 		EmitVertex();
 	
 		gl_Position = gl_in[1].gl_Position + vec4(normal, 1.f);
+			_FragPos = FragPos[1];
+			_Normal = Normal[1];
+			_outUvs = outUvs[1];
 		EmitVertex();
 		
 		gl_Position = gl_in[2].gl_Position + vec4(normal, 1.f);
+			_FragPos = FragPos[2];
+			_Normal = Normal[2];
+			_outUvs = outUvs[2];
 		EmitVertex();
 		
 		EndPrimitive();

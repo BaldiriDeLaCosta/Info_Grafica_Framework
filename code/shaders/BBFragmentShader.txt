@@ -34,7 +34,9 @@
 				//result += diffuse;
 				//result += specular;
 				result *= objectColor;
-				vec4 textureColor = texture(diffuseTexture, _outUvs);
+				vec4 textureColor = texture(diffuseTexture, Vertex_UV);
+						if(textureColor.a < 0.15)
+							discard;
 				//out_Color = result /*+ textureColor*/;
 				out_Color = textureColor * Vertex_Color;
 		}
