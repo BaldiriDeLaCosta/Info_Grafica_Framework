@@ -1305,12 +1305,12 @@ void GLrender(float dt) {
 	RV::_MVP = RV::_projection * RV::_modelView;
 
 	//Drawing of the scene objects
-	//babyCharacter.drawObject(Object::Type::CHARACTER);
-	//brotherCharacter.drawObject(Object::Type::CHARACTER);
-	//sisterCharacter.drawObject(Object::Type::CHARACTER);
+	babyCharacter.drawObject(Object::Type::CHARACTER);
+	brotherCharacter.drawObject(Object::Type::CHARACTER);
+	sisterCharacter.drawObject(Object::Type::CHARACTER);
 	mommyCharacter.drawObject(Object::Type::CHARACTER);
 	daddyCharacter.drawObject(Object::Type::CHARACTER);
-	//ground.drawObject(Object::Type::CUBE);
+	ground.drawObject(Object::Type::CUBE);
 	//light.drawObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
 	Quad.drawObject(Object::Type::QUAD);
 	ImGui::Render();

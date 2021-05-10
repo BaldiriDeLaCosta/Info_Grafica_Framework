@@ -12,6 +12,6 @@
 	void main() {
 		vec4 textureColor = texture(diffuseTexture, _outUvs);
 		
-		out_Color = vec4(_lightIntensity, 1.0) + textureColor;
+		out_Color = vec4(_lightIntensity, 1.0) * textureColor;
 		
 	}
