@@ -462,6 +462,7 @@ float startTime, actualTime, deltaTime;
 class Shader {
 private:
 	GLuint program;
+	GLuint programWithTexture;
 	GLuint* shaders;
 	int shadersSize = 0;
 	unsigned int textureID;
@@ -945,6 +946,8 @@ void GLinit(int width, int height) {
 	Shader BBShader = Shader("shaders/BBVertexShader.vs", "shaders/BBFragmentShader.fs", "shaders/BBGeometryShader.gs");
 	BBShader.AddTextureID("resources/Sun.png");
 
+	Shader ShaderWithTexture = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShaderWithTexture.fs", "shaders/phongGeometryShader.gs");
+
 	//Objects inicialization
 	babyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.02f, 0.02f, 0.02f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
 	brotherCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.03f, 0.03f, 0.03f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
@@ -1062,7 +1065,7 @@ void GLrender(float dt) {
 	mommyCharacter.drawObject(Object::Type::CHARACTER);
 	daddyCharacter.drawObject(Object::Type::CHARACTER);
 	ground.drawObject(Object::Type::CUBE);
-	//light.drawObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
+	light.drawObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
 	Quad.drawObject(Object::Type::QUAD);
 	ImGui::Render();
 }
