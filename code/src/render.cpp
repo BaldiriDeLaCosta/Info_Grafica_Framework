@@ -853,6 +853,7 @@ public:
 		if (available && enabled) {
 			glBindVertexArray(objectVao);
 
+
 			shader.UseProgram();
 			shader.UseTexture();
 
@@ -952,8 +953,8 @@ void GLinit(int width, int height) {
 	babyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.02f, 0.02f, 0.02f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
 	brotherCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.03f, 0.03f, 0.03f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
 	sisterCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.03f, 0.03f, 0.03f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
-	mommyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.1f, 0.1f, 0.1f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
-	daddyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.09f, 0.09f, 0.09f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
+	mommyCharacter.setupObject(Object::Type::CHARACTER, staticPhongShader, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.1f, 0.1f, 0.1f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
+	daddyCharacter.setupObject(Object::Type::CHARACTER, staticPhongShader, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.09f, 0.09f, 0.09f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
 	
 	ground.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
 	light.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
@@ -1059,13 +1060,26 @@ void GLrender(float dt) {
 	RV::_MVP = RV::_projection * RV::_modelView;
 
 	//Drawing of the scene objects
+	glEnable(GL_STENCIL_TEST);
+	glClear(GL_STENCIL_BUFFER_BIT);
+	glStencilFunc(GL_ALWAYS, 1, 0xFF); // Set any stencil to 1
+	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+	glStencilMask(0xFF); // Write to stencil buffer
+	ground.drawObject(Object::Type::CUBE);
+	glDepthMask(GL_FALSE); // Don't write to depth buffer
+	glStencilFunc(GL_EQUAL, 1, 0xFF); // Pass test if stencil value is 1
+	glStencilMask(0x00); // Don't write anything to stencil buffer
 	babyCharacter.drawObject(Object::Type::CHARACTER);
 	brotherCharacter.drawObject(Object::Type::CHARACTER);
 	sisterCharacter.drawObject(Object::Type::CHARACTER);
+	// Draw cube reflection
+	glDepthMask(GL_TRUE); // Write to depth buffer
+	glStencilFunc(GL_ALWAYS, 0, 0xFF); // Make all fragments pass sten
 	mommyCharacter.drawObject(Object::Type::CHARACTER);
 	daddyCharacter.drawObject(Object::Type::CHARACTER);
-	ground.drawObject(Object::Type::CUBE);
-	light.drawObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
+	glDisable(GL_STENCIL_TEST);
+	
+	//light.drawObject(Object::Type::CUBE, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
 	Quad.drawObject(Object::Type::QUAD);
 	ImGui::Render();
 }

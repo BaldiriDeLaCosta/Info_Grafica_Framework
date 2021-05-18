@@ -47,7 +47,7 @@
 			specular = specularLight * pow(max(dot(r, v), 0.0), shininess);
 		}
 		
-		lightIntensity = /*ambient +*/ diffuse + specular;
+		lightIntensity = ambient/* + diffuse + specular*/;
 		gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);
 		
 	}
