@@ -781,7 +781,7 @@ public:
 		//Model loading depending on the passed parameter
 		switch (_type) {
 		case Type::CHARACTER:
-			available = loadOBJ("resources/among_us.obj.txt", vertices, uvs, normals);
+			available = loadOBJ("resources/Camaro.obj.txt", vertices, uvs, normals);
 			break;
 		case Type::CUBE:
 			available = loadOBJ("resources/cube.obj.txt", vertices, uvs, normals);
