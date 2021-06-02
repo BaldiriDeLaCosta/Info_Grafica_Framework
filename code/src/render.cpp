@@ -459,13 +459,72 @@ float startTime, actualTime, deltaTime;
 
 #pragma region ShaderRegion
 
+namespace Texture {
+	std::vector<unsigned int> textureIDs;
+
+	bool FindTexture(unsigned int IDToFind) {
+		for (int i = 0; i < textureIDs.size(); i++)
+		{
+			if (textureIDs[i] == IDToFind)	return true;
+		}
+		
+		return false;
+	}
+
+	bool FindTexture(unsigned int IDToFind, std::vector<unsigned int> vectorToSearch) {
+		for (int i = 0; i < vectorToSearch.size(); i++)
+		{
+			if (vectorToSearch[i] == IDToFind)	return true;
+		}
+
+		return false;
+	}
+
+	unsigned int AddTextureID(const char* texturePath) {
+		unsigned int tmpTextureID;
+
+		data = stbi_load(texturePath, &x, &y, &n, 4);
+		//stbi_image_free(data);
+		glGenTextures(1, &tmpTextureID); // Create the handle of the texture
+
+		if (!FindTexture(tmpTextureID))
+		{
+			glBindTexture(GL_TEXTURE_2D, tmpTextureID); //Bind it
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			textureIDs.push_back(tmpTextureID);
+		}
+		else
+		{
+			//do nothing
+		}
+		
+		return tmpTextureID;
+	}
+
+	//static unsigned int CreateTextureID(const char* texturePath) {
+	//	unsigned int textureID;
+
+	//	data = stbi_load(texturePath, &x, &y, &n, 4);
+	//	//stbi_image_free(data);
+	//	glGenTextures(1, &textureID); // Create the handle of the texture
+	//	glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
+	//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
+	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	//	return textureID;
+	//}
+}
+
 class Shader {
 private:
 	GLuint program;
 	GLuint programWithTexture;
 	GLuint* shaders;
 	int shadersSize = 0;
-	unsigned int textureID;
+	std::vector<unsigned int> textureIDs;
 
 	/*const char* vertShader;
 	const char* fragShader;
@@ -545,9 +604,13 @@ public:
 		glBindAttribLocation(program, 2, "uvs");
 
 		linkProgram(program);
+
+		glDeleteShader(shaders[0]);
+		glDeleteShader(shaders[2]);
+		glDeleteShader(shaders[1]);
 	}
 	Shader(const Shader& s) {
-		textureID = s.textureID;
+		textureIDs = s.textureIDs;
 
 		//delete[] shaders;
 		shadersSize = s.shadersSize;
@@ -565,17 +628,26 @@ public:
 	}
 
 	void AddTextureID(const char* texturePath) {
-		data = stbi_load(texturePath, &x, &y, &n, 4);
-		//stbi_image_free(data);
-		glGenTextures(1, &textureID); // Create the handle of the texture
-		glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		//data = stbi_load(texturePath, &x, &y, &n, 4);
+		////stbi_image_free(data);
+		//glGenTextures(1, &texturesID); // Create the handle of the texture
+		unsigned int newTextureID = Texture::AddTextureID(texturePath);
+		if (!Texture::FindTexture(newTextureID, textureIDs))
+		{
+			textureIDs.push_back(newTextureID);
+		}
 	}
+
 	void SetTextureID(unsigned int _textureID) {
-		textureID = _textureID;
+		if (!Texture::FindTexture(_textureID, textureIDs))
+		{
+			textureIDs.push_back(_textureID);
+		}
 	}
+
+	/*void SetTextureID(unsigned int _textureID) {
+		textureIDs = _textureID;
+	}*/
 	static unsigned int CreateTextureID(const char* texturePath) {
 		unsigned int textureID;
 
@@ -595,9 +667,14 @@ public:
 	}
 
 	void UseTexture() {
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureID);
-		glUniform1i(glGetUniformLocation(program, "diffuseTexture"), 0);
+		for (int i = 0; i < textureIDs.size() && i < 10; i++)
+		{
+			int tmpIt = GL_TEXTURE0 + i;
+
+			glActiveTexture(tmpIt);
+			glBindTexture(GL_TEXTURE_2D, textureIDs[i]);
+			glUniform1i(glGetUniformLocation(program, "diffuseTexture"), i);
+		}
 	}
 
 	GLuint GetShader(int shaderPos) {
@@ -617,7 +694,11 @@ public:
 		glDeleteShader(shaders[1]);
 		glDeleteShader(shaders[2]);
 
-		glDeleteTextures(1, &textureID);
+		for (int i = 0; i < textureIDs.size(); i++)
+		{
+			glDeleteTextures(1, &textureIDs[i]);
+		}
+		textureIDs.clear();
 	}
 
 	//setters for uniforms
@@ -657,7 +738,7 @@ public:
 class Object {
 public:
 	//Enum class for diferent object models
-	static enum class Type { CHARACTER, CUBE, QUAD, COUNT };
+	static enum class Type { CHARACTER, CUBE, QUAD, SKYBOX, COUNT };
 
 	std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
 	std::vector< glm::vec3 > temp_vertices;
@@ -791,7 +872,11 @@ public:
 			vertices.push_back(glm::vec3(0.f, 7.f, -10.f));
 			uvs.push_back(glm::vec2(0.5f, 0.5f));
 			normals.push_back(glm::vec3(0.f, 0.f, 1.f));
-
+			break;
+		case Type::SKYBOX:
+			available = true;
+			vertices.push_back(glm::vec3(0.f, 0.f, 0.f));
+			break;
 		default:;
 
 		}
@@ -801,7 +886,7 @@ public:
 		rotation = _rotation;
 		rotationAxis = _rotationAxis;
 
-		if (available) {
+		if (available && _type != Type::SKYBOX) {
 
 			glGenVertexArrays(1, &objectVao);
 			glBindVertexArray(objectVao);
@@ -827,6 +912,21 @@ public:
 			glBindVertexArray(0);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+			shader = _shader;
+		}
+		else if (available && _type == Type::SKYBOX)
+		{
+			glGenVertexArrays(1, &objectVao);
+			glBindVertexArray(objectVao);
+			glGenBuffers(1, objectVbo);
+
+
+			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[0]);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+			glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0);
+
+			glEnableVertexAttribArray(0);
 
 			shader = _shader;
 		}
@@ -951,6 +1051,8 @@ void GLinit(int width, int height) {
 	Shader shaderWithTexture = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShaderWithTexture.fs", "shaders/phongGeometryShader.gs");
 
 	Shader outlineShader = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShaderOutline.fs", "shaders/phongGeometryShader.gs");
+
+	Shader skyboxShader = Shader("shaders/SkyboxVertexShader.vs", "shaders/SkyboxFragmentShader.fs", "shaders/SkyboxGeometryShader.gs");
 
 	//Objects inicialization
 	babyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.02f, 0.02f, 0.02f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
