@@ -627,6 +627,32 @@ public:
 		return program;
 	}
 
+	void AddSkyboxTextureID(std::vector<const char*> texturePath) {
+		unsigned int tmpTextureID;
+		glGenTextures(1, &tmpTextureID); // Create the handle of the texture
+		if (!Texture::FindTexture(tmpTextureID))
+			glBindTexture(GL_TEXTURE_CUBE_MAP, tmpTextureID); //Bind it
+
+		for (unsigned int i = 0; i < texturePath.size(); i++)
+		{
+			data = stbi_load(texturePath[i], &x, &y, &n, 4);
+			if (data == NULL) {
+				fprintf(stderr, "Error loading image %s", texturePath[i]);
+				exit(1);
+			}
+			glTexImage2D(GL_TEXTURE_CUBE_MAP_POSITIVE_X + i, 0, GL_RGB, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data);
+			stbi_image_free(data);
+		}
+
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+		glTexParameteri(GL_TEXTURE_CUBE_MAP, GL_TEXTURE_WRAP_R, GL_CLAMP_TO_EDGE);
+		textureIDs.push_back(tmpTextureID);
+
+	}
+
 	void AddTextureID(const char* texturePath) {
 		//data = stbi_load(texturePath, &x, &y, &n, 4);
 		////stbi_image_free(data);
@@ -648,19 +674,19 @@ public:
 	/*void SetTextureID(unsigned int _textureID) {
 		textureIDs = _textureID;
 	}*/
-	static unsigned int CreateTextureID(const char* texturePath) {
-		unsigned int textureID;
+	//static unsigned int CreateTextureID(const char* texturePath) {
+	//	unsigned int textureID;
 
-		data = stbi_load(texturePath, &x, &y, &n, 4);
-		//stbi_image_free(data);
-		glGenTextures(1, &textureID); // Create the handle of the texture
-		glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+	//	data = stbi_load(texturePath, &x, &y, &n, 4);
+	//	//stbi_image_free(data);
+	//	glGenTextures(1, &textureID); // Create the handle of the texture
+	//	glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
+	//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
+	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-		return textureID;
-	}
+	//	return textureID;
+	//}
 
 	void UseProgram() {
 		glUseProgram(program);
@@ -968,7 +994,7 @@ public:
 
 			if (_type == Type::CHARACTER || _type == Type::CUBE)
 				glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
-			else if (_type == Type::QUAD)
+			else if (_type == Type::QUAD || _type == Type::SKYBOX)
 				glDrawArrays(GL_POINTS, 0, 1);
 
 			glUseProgram(0);
@@ -1020,6 +1046,7 @@ Object daddyCharacter;
 Object ground;
 Object light;
 Object Quad;
+Object skybox;
 
 void GLinit(int width, int height) {
 	glViewport(0, 0, width, height);
@@ -1038,6 +1065,15 @@ void GLinit(int width, int height) {
 	//Axis::setupAxis();
 	//Cube::setupCube();
 
+	std::vector<const char*> skyboxTextureSides = {
+			"resources/Skybox/Right.png",
+			"resources/Skybox/Left.png",
+			"resources/Skybox/Ceiling.png",
+			"resources/Skybox/Floor.png",
+			"resources/Skybox/Front.png",
+			"resources/Skybox/Back.png",
+	};
+
 	//Init Shaders
 	Shader phongShader = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShader.fs", "shaders/phongGeometryShader.gs");
 	phongShader.AddTextureID("resources/Plastic_4K_Diffuse.jpg");
@@ -1053,8 +1089,11 @@ void GLinit(int width, int height) {
 	Shader outlineShader = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShaderOutline.fs", "shaders/phongGeometryShader.gs");
 
 	Shader skyboxShader = Shader("shaders/SkyboxVertexShader.vs", "shaders/SkyboxFragmentShader.fs", "shaders/SkyboxGeometryShader.gs");
+	skyboxShader.AddSkyboxTextureID(skyboxTextureSides);
 
 	//Objects inicialization
+	skybox.setupObject(Object::Type::QUAD, skyboxShader);
+
 	babyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.02f, 0.02f, 0.02f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
 	babyCharacter2.setupObject(Object::Type::CHARACTER, outlineShader, glm::vec3(0.0f, -0.25f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.022f, 0.022f, 0.022f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
 	brotherCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.03f, 0.03f, 0.03f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
@@ -1171,6 +1210,7 @@ void GLrender(float dt) {
 	glStencilFunc(GL_ALWAYS, 1, 0xFF); // Set any stencil to 1
 	glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 	glStencilMask(0x00); // Write to stencil buffer
+	skybox.drawObject(Object::Type::SKYBOX);
 	ground.drawObject(Object::Type::CUBE);
 	//glDepthMask(GL_FALSE); // Don't write to depth buffer
 	//glStencilFunc(GL_EQUAL, 1, 0xFF); // Pass test if stencil value is 1

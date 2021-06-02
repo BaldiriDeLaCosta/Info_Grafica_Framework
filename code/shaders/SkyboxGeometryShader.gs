@@ -8,14 +8,14 @@
 	uniform mat4 mvpMat;
 	
 	vec4 vertex[] = vec4[8] (
-		vec4(-6.0, -6.0, -6.0, 1.0),
-		vec4(-6.0, -6.0,  6.0, 1.0),
-		vec4( 6.0, -6.0,  6.0, 1.0),
-		vec4( 6.0, -6.0, -6.0, 1.0),
-		vec4(-6.0,  6.0, -6.0, 1.0),
-		vec4(-6.0,  6.0,  6.0, 1.0),
-		vec4( 6.0,  6.0,  6.0, 1.0),
-		vec4( 6.0,  6.0, -6.0, 1.0)
+		vec4(-600.0, -600.0, -600.0, 1.0),
+		vec4(-600.0, -600.0,  600.0, 1.0),
+		vec4( 600.0, -600.0,  600.0, 1.0),
+		vec4( 600.0, -600.0, -600.0, 1.0),
+		vec4(-600.0,  600.0, -600.0, 1.0),
+		vec4(-600.0,  600.0,  600.0, 1.0),
+		vec4( 600.0,  600.0,  600.0, 1.0),
+		vec4( 600.0,  600.0, -600.0, 1.0)
 	);
 	
 	vec4 cubeVertex[] = vec4[24] (
@@ -33,7 +33,7 @@
 			for(int j = 0; j < 4; j++){
 				vec3 offset = cubeVertex[i*4 + j].xyz;
 				gl_Position = mvpMat * mv_Mat * (gl_in[0].gl_Position + vec4(offset, 1));
-				gl_Position = gl_Position.xyww;
+				gl_Position = gl_Position.xyzw;
 				skyboxDir = cubeVertex[i*4 + j].xyz;
 				
 				EmitVertex();
