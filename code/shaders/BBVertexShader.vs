@@ -13,9 +13,11 @@
 			uniform mat4 mvpMat;
 			uniform vec4 lightPos;
 			uniform vec4 in_Color;
+			layout(location = 2) in vec2 offsets[10];
 			out Vertex	{ vec4 color; } vertex;
 			void main() {
-				gl_Position = vec4(in_Position, 1.f);
+				vec2 offset = offsets[gl_InstanceID];
+				gl_Position = vec4(in_Position + vec3(offset, 0.0), 1.f);
 				vertex.color = in_Color;
 				vert_Normal = mv_Mat * objMat * vec4(in_Normal, 0.0);
 				Normal = mat4(transpose(inverse(mvpMat * objMat))) * vert_Normal;

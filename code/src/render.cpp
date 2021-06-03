@@ -566,9 +566,10 @@ private:
 		}
 		return shader;
 	}
-
+	
 public:
 	//unsigned int id;
+	glm::vec2 translations[10];
 
 	Shader() {};
 	Shader(const char* vertexPath, const char* fragmentPath) {
@@ -744,6 +745,24 @@ public:
 		glm::vec3 vertexArray[3] = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
 		glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
 		glUniform4f(glGetUniformLocation(program, "in_Color"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
+
+		int index = 0;
+		float offset = 2.f;
+		for (int y = 0; y < 2; y ++)
+		{
+			for (int x = 0; x < 5; x ++)
+			{
+				glm::vec2 translation;
+				translation.x = (float)x / 10.f + offset;
+				translation.y = (float)y / 10.f + offset;
+				translations[index++];
+			}
+		}
+		//for (int i = 0; i < 10; i++)
+		//{
+		//	glUniform2f(glGetUniformLocation(program, "offsets[" + std::to_string(i) + "]")), )
+		//}
+		
 	}
 	void SetUniformsLights(const glm::vec3& objectColor, const glm::vec3& lightColor) {
 		glUniform4f(glGetUniformLocation(program, "color"), 1.f, 0.1f, 1.f, 0.f);
@@ -915,7 +934,7 @@ public:
 		rotation = _rotation;
 		rotationAxis = _rotationAxis;
 
-		if (available && _type != Type::SKYBOX) {
+		if (available && _type != Type::SKYBOX && _type != Type::QUAD) {
 
 			glGenVertexArrays(1, &objectVao);
 			glBindVertexArray(objectVao);
@@ -941,6 +960,21 @@ public:
 			glBindVertexArray(0);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 			glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+			shader = _shader;
+		}
+		else if (available && _type == Type::QUAD)
+		{
+			glGenBuffers(1, &objectVbo[0]);
+			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[0]);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 10, &shader.translations[0], GL_STATIC_DRAW);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+			glEnableVertexAttribArray(2);
+			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[0]);
+			glVertexAttribPointer(2, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), (void*)0);
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+			glVertexAttribDivisor(2, 1);
 
 			shader = _shader;
 		}
@@ -1000,8 +1034,12 @@ public:
 
 			if (_type == Type::CHARACTER || _type == Type::CUBE)
 				glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
-			else if (_type == Type::QUAD || _type == Type::SKYBOX)
+			else if (_type == Type::SKYBOX)
 				glDrawArrays(GL_POINTS, 0, 1);
+			if (_type == Type::QUAD)
+			{
+				glDrawArraysInstancedBaseInstance(GL_POINTS, 0, 1, 10, 0);
+			}
 
 			glUseProgram(0);
 			glBindVertexArray(0);
@@ -1215,7 +1253,7 @@ void GLrender(float dt) {
 
 	babyCharacter.rotationAxis = glm::vec3(0, 1, 0);
 	babyCharacter2.rotationAxis = glm::vec3(0, 1, 0);
-	printf("%f \n", babyCharacter.carPos.z);
+
 	if (babyCharacter.carPos.z >= 10.f)
 	{
 		babyCharacter.turnLeft = true;
@@ -1236,6 +1274,7 @@ void GLrender(float dt) {
 		babyCharacter.turnRight = false;
 		babyCharacter2.turnRight = false;
 	}
+
 	if (babyCharacter.turnLeft)
 	{
 		babyCharacter.rotation += 0.05f;
