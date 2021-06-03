@@ -16,6 +16,7 @@
 #include <ctime>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
+#define PI 3.141592653589793238462643383279502884L
 
 int x, y, n;
 unsigned char* data;
@@ -793,6 +794,8 @@ public:
 	glm::vec3 rotationAxis;
 	glm::vec3 modelSize;
 	glm::vec4 objectColor;
+	glm::vec3 carPos = glm::vec3(0.0f, 0.0f, 0.0f);
+	bool turnLeft, turnRight;
 
 	bool loadOBJ(const char* path,
 		std::vector < glm::vec3 >& out_vertices,
@@ -983,7 +986,10 @@ public:
 			shader.UseProgram();
 			shader.UseTexture();
 
-			objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
+			if (_type == Type::CHARACTER)
+				objMat = glm::translate(glm::mat4(), carPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
+			else
+				objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
 			shader.SetUniformsMats(objMat);
 			shader.SetUniformsLights(objectColor);
 
@@ -1039,10 +1045,10 @@ GLuint VBO;
 //Objects declaration
 Object babyCharacter;
 Object babyCharacter2;
-Object brotherCharacter;
-Object sisterCharacter;
-Object mommyCharacter;
-Object daddyCharacter;
+//Object brotherCharacter;
+//Object sisterCharacter;
+//Object mommyCharacter;
+//Object daddyCharacter;
 Object ground;
 Object light;
 Object Quad;
@@ -1093,13 +1099,12 @@ void GLinit(int width, int height) {
 
 	//Objects inicialization
 	skybox.setupObject(Object::Type::QUAD, skyboxShader);
-
-	babyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.0f, 0.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.02f, 0.02f, 0.02f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
-	babyCharacter2.setupObject(Object::Type::CHARACTER, outlineShader, glm::vec3(0.0f, -0.25f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.022f, 0.022f, 0.022f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
-	brotherCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.03f, 0.03f, 0.03f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
-	sisterCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.03f, 0.03f, 0.03f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
-	mommyCharacter.setupObject(Object::Type::CHARACTER, staticPhongShader, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.1f, 0.1f, 0.1f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
-	daddyCharacter.setupObject(Object::Type::CHARACTER, staticPhongShader, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.09f, 0.09f, 0.09f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
+	babyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.f, 0.f, 0.f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.02f, 0.02f, 0.02f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
+	babyCharacter2.setupObject(Object::Type::CHARACTER, outlineShader, glm::vec3(0.f, 0.f, 0.f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.022f, 0.022f, 0.022f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
+	//brotherCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.03f, 0.03f, 0.03f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
+	//sisterCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(7.0f, 0.0f, -20.0f), glm::radians(-20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.03f, 0.03f, 0.03f), glm::vec4(0.65f, 0.2f, 0.45f, 0.0f));
+	//mommyCharacter.setupObject(Object::Type::CHARACTER, staticPhongShader, glm::vec3(-20.0f, 0.0f, -20.0f), glm::radians(40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.1f, 0.1f, 0.1f), glm::vec4(0.0f, 0.0f, 0.7f, 0.0f));
+	//daddyCharacter.setupObject(Object::Type::CHARACTER, staticPhongShader, glm::vec3(20.0f, 0.0f, -20.0f), glm::radians(-40.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.09f, 0.09f, 0.09f), glm::vec4(0.7f, 0.0f, 0.0f, 0.0f));
 	
 	ground.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
 	light.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
@@ -1108,7 +1113,6 @@ void GLinit(int width, int height) {
 	/////////////////////////////////////////////////////TODO
 	GLuint vertex_shader;
 	GLuint fragment_shader;
-
 #pragma region Commented
 	
 	////Compile the shaders
@@ -1204,6 +1208,47 @@ void GLrender(float dt) {
 
 	RV::_MVP = RV::_projection * RV::_modelView;
 
+	babyCharacter.carPos.z += glm::cos(babyCharacter.rotation);
+	babyCharacter.carPos.x += glm::sin(babyCharacter.rotation);
+	babyCharacter2.carPos.z += glm::cos(babyCharacter.rotation);
+	babyCharacter2.carPos.x += glm::sin(babyCharacter.rotation);
+
+	babyCharacter.rotationAxis = glm::vec3(0, 1, 0);
+	babyCharacter2.rotationAxis = glm::vec3(0, 1, 0);
+	printf("%f \n", babyCharacter.carPos.z);
+	if (babyCharacter.carPos.z >= 10.f)
+	{
+		babyCharacter.turnLeft = true;
+		babyCharacter2.turnLeft = true;
+	}
+	else if (babyCharacter.rotation >= PI * 1.5f)
+	{
+		babyCharacter.turnLeft = false;
+		babyCharacter2.turnLeft = false;
+	}
+	if (babyCharacter.carPos.x <= -17.f)
+	{
+		babyCharacter.turnRight = true;
+		babyCharacter2.turnRight = true;
+	}
+	else if (babyCharacter.rotation <= 0.f)
+	{
+		babyCharacter.turnRight = false;
+		babyCharacter2.turnRight = false;
+	}
+	if (babyCharacter.turnLeft)
+	{
+		babyCharacter.rotation += 0.05f;
+		babyCharacter2.rotation += 0.05f;
+	}
+	else if (babyCharacter.turnRight)
+	{
+		babyCharacter.rotation -= 0.05f;
+		babyCharacter2.rotation -= 0.05f;
+	}
+
+
+
 	//Drawing of the scene objects
 	glEnable(GL_STENCIL_TEST);
 	glClear(GL_STENCIL_BUFFER_BIT);
@@ -1221,10 +1266,10 @@ void GLrender(float dt) {
 	glStencilFunc(GL_ALWAYS, 1, 0xFF); // Make all fragments pass sten
 	glStencilMask(0xFF);
 	babyCharacter.drawObject(Object::Type::CHARACTER);
-	brotherCharacter.drawObject(Object::Type::CHARACTER);
-	sisterCharacter.drawObject(Object::Type::CHARACTER);
-	mommyCharacter.drawObject(Object::Type::CHARACTER);
-	daddyCharacter.drawObject(Object::Type::CHARACTER);
+	//brotherCharacter.drawObject(Object::Type::CHARACTER);
+	//sisterCharacter.drawObject(Object::Type::CHARACTER);
+	//mommyCharacter.drawObject(Object::Type::CHARACTER);
+	//daddyCharacter.drawObject(Object::Type::CHARACTER);
 	Quad.drawObject(Object::Type::QUAD);
 
 	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);

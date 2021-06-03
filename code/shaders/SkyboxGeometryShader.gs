@@ -33,7 +33,6 @@
 			for(int j = 0; j < 4; j++){
 				vec3 offset = cubeVertex[i*4 + j].xyz;
 				gl_Position = mvpMat * mv_Mat * (gl_in[0].gl_Position + vec4(offset, 1));
-				gl_Position = gl_Position.xyzw;
 				skyboxDir = cubeVertex[i*4 + j].xyz;
 				
 				EmitVertex();
