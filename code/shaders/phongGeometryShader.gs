@@ -4,8 +4,10 @@
 	uniform float translation;
 	uniform float deltaTime;
 	in vec2 outUvs[];
+	in vec3 outNormal[];
 	in vec3 lightIntensity[];
 	out vec2 _outUvs;
+	out vec3 _outNormal;
 	out vec3 _lightIntensity;
 	
 	void main() {
@@ -32,16 +34,19 @@
 		// Movem els 3 vertexs en la normal del triangle
         gl_Position = gl_in[0].gl_Position + vec4(normal, 1.f);
         _outUvs = outUvs[0];
+		_outNormal = outNormal[0];
 		_lightIntensity = lightIntensity[0];
         EmitVertex();
 
         gl_Position = gl_in[1].gl_Position + vec4(normal, 1.f);
         _outUvs = outUvs[1];
+		_outNormal = outNormal[1];
 		_lightIntensity = lightIntensity[1];
         EmitVertex();
 
         gl_Position = gl_in[2].gl_Position + vec4(normal, 1.f);
         _outUvs = outUvs[2];
+		_outNormal = outNormal[2];
 		_lightIntensity = lightIntensity[2];
         EmitVertex();
 

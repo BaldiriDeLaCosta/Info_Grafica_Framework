@@ -487,13 +487,19 @@ namespace Texture {
 		data = stbi_load(texturePath, &x, &y, &n, 4);
 		//stbi_image_free(data);
 		glGenTextures(1, &tmpTextureID); // Create the handle of the texture
-
+		
 		if (!FindTexture(tmpTextureID))
 		{
 			glBindTexture(GL_TEXTURE_2D, tmpTextureID); //Bind it
-			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
+
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+			glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+			glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
+			stbi_image_free(data);
+
 			textureIDs.push_back(tmpTextureID);
 		}
 		else
@@ -877,22 +883,23 @@ public:
 		}
 
 		// For each vertex of each triangle
+		// Vertex
 		for (unsigned int i = 0; i < vertexIndices.size(); i++) {
-			// Vertex
 			unsigned int vertexIndex = vertexIndices[i];
 			glm::vec3 vertex = temp_vertices[vertexIndex - 1];
 			out_vertices.push_back(vertex);
-
-			// UV
+		}
+		// UV
+		for (unsigned int i = 0; i < uvIndices.size(); i++) {
 			unsigned int uvsIndex = uvIndices[i];
 			glm::vec2 uv = temp_uvs[uvsIndex - 1];
 			out_uvs.push_back(uv);
-
-			// Normal
+		}
+		// Normal
+		for (unsigned int i = 0; i < normalIndices.size(); i++) {
 			unsigned int normalIndex = normalIndices[i];
 			glm::vec3 normal = temp_normals[normalIndex - 1];
 			out_normals.push_back(normal);
-
 		}
 
 		return true;
@@ -1092,6 +1099,8 @@ Object light;
 Object Quad;
 Object skybox;
 
+int camera = 0;
+
 void GLinit(int width, int height) {
 	glViewport(0, 0, width, height);
 	glClearColor(0.2f, 0.2f, 0.2f, 1.f);
@@ -1099,6 +1108,7 @@ void GLinit(int width, int height) {
 	glDepthFunc(GL_LEQUAL);
 	glEnable(GL_DEPTH_TEST);
 	glEnable(GL_CULL_FACE);
+	glCullFace(GL_BACK);
 
 	startTime = actualTime = clock();
 	deltaTime = 0;
@@ -1120,7 +1130,7 @@ void GLinit(int width, int height) {
 
 	//Init Shaders
 	Shader phongShader = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShader.fs", "shaders/phongGeometryShader.gs");
-	phongShader.AddTextureID("resources/Plastic_4K_Diffuse.jpg");
+	phongShader.AddTextureID("resources/Camaro/Camaro_AlbedoTransparency_alt.png");
 
 	Shader staticPhongShader = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShader.fs", "shaders/phongGeometryShader.gs");
 	staticPhongShader.AddTextureID("resources/grassTexture.png");
@@ -1136,7 +1146,7 @@ void GLinit(int width, int height) {
 	skyboxShader.AddSkyboxTextureID(skyboxTextureSides);
 
 	//Objects inicialization
-	skybox.setupObject(Object::Type::QUAD, skyboxShader);
+	skybox.setupObject(Object::Type::SKYBOX, skyboxShader);
 	babyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.f, 0.f, 0.f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.02f, 0.02f, 0.02f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
 	babyCharacter2.setupObject(Object::Type::CHARACTER, outlineShader, glm::vec3(0.f, 0.f, 0.f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.022f, 0.022f, 0.022f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
 	//brotherCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(-7.0f, 0.0f, -20.0f), glm::radians(20.f), glm::vec3(0.f, 1.f, 0.f), glm::vec3(0.03f, 0.03f, 0.03f), glm::vec4(0.4f, 0.2f, 0.65f, 0.0f));
@@ -1238,13 +1248,26 @@ void GLrender(float dt) {
 	//Update of the perspective view for the dolly effect
 	RV::_projection = glm::perspective(RV::FOV, (float)800 / (float)600, RV::zNear, RV::zFar);
 
-	//Setting of the camera
-	RV::_modelView = glm::mat4(1.f);
-	RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
-	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
-	RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
+	if (camera == 0)
+	{
+		//Setting of the camera
+		RV::_modelView = glm::mat4(1.f);
+		RV::_modelView = glm::translate(RV::_modelView, glm::vec3(RV::panv[0], RV::panv[1], RV::panv[2]));
+		RV::_modelView = glm::rotate(RV::_modelView, RV::rota[1], glm::vec3(1.f, 0.f, 0.f));
+		RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
 
-	RV::_MVP = RV::_projection * RV::_modelView;
+		RV::_MVP = RV::_projection * RV::_modelView;
+	}
+	else if (camera == 1)
+	{
+		RV::_modelView = glm::mat4(1.f);
+
+		RV::_modelView = glm::rotate(RV::_modelView, -(float)PI, glm::vec3(0.f, 1.0f, 0.f));
+		RV::_modelView = glm::rotate(RV::_modelView, -babyCharacter.rotation, glm::vec3(0.f, 1.0f, 0.f));
+		RV::_modelView = glm::translate(RV::_modelView,	-glm::vec3(babyCharacter.carPos.x, babyCharacter.carPos.y + 1.5f, babyCharacter.carPos.z));
+
+		RV::_MVP = RV::_projection * RV::_modelView;
+	}
 
 	babyCharacter.carPos.z += glm::cos(babyCharacter.rotation);
 	babyCharacter.carPos.x += glm::sin(babyCharacter.rotation);
@@ -1304,7 +1327,10 @@ void GLrender(float dt) {
 	//glStencilMask(0xFF); // Don't write anything to stencil buffer
 	glStencilFunc(GL_ALWAYS, 1, 0xFF); // Make all fragments pass sten
 	glStencilMask(0xFF);
+	if (camera == 1)
+		glCullFace(GL_FRONT);
 	babyCharacter.drawObject(Object::Type::CHARACTER);
+	glCullFace(GL_BACK);
 	//brotherCharacter.drawObject(Object::Type::CHARACTER);
 	//sisterCharacter.drawObject(Object::Type::CHARACTER);
 	//mommyCharacter.drawObject(Object::Type::CHARACTER);
@@ -1336,6 +1362,11 @@ void GUI() {
 		//ImGui::Checkbox("Dolly Effect", &dollyEffectActive);
 		//ImGui::SliderFloat("Dolly Effect Slider", &RV::panv[2], -16.f, -6.f);
 		//Light position slider modifiers
+		if (ImGui::Button("Default Cam")) {
+			camera = 0;
+		}	if (ImGui::Button("Car Cam")) {
+			camera = 1;
+		}
 		if (ImGui::CollapsingHeader("Exploding Effect"))
 		{
 			ImGui::Checkbox("Start Explosion", &startExplosion);

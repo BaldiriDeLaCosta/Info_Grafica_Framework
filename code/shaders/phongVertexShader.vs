@@ -1,9 +1,10 @@
 #version 330
-	in vec3 in_Position;
-	in vec3 in_Normal;
-	in vec2 uvs;
+	layout(location = 0) in vec3 in_Position;
+	layout(location = 1)in vec3 in_Normal;
+	layout(location = 2)in vec2 uvs;
 	in vec4 geomPos;
 	out vec2 outUvs;
+	out vec3 outNormal;
 	out vec3 lightIntensity;
 	uniform mat4 objMat;
 	uniform mat4 mv_Mat;
@@ -19,6 +20,7 @@
 
 	void main() {
 		outUvs = uvs;
+		outNormal = in_Normal;
 		shininess = InShininess;
 		
 		// Ambient Light
