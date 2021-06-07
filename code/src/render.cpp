@@ -576,7 +576,6 @@ private:
 public:
 	//unsigned int id;
 	glm::vec2 translations[10];
-	float alpha;
 
 	Shader() {};
 	Shader(const char* vertexPath, const char* fragmentPath) {
@@ -594,9 +593,6 @@ public:
 		glBindAttribLocation(program, 2, "uvs");
 
 		linkProgram(program);
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 	}
 	Shader(const char* vertexPath, const char* fragmentPath, const char* geometryPath) {
 		shadersSize = 3;
@@ -616,9 +612,6 @@ public:
 		glBindAttribLocation(program, 2, "uvs");
 
 		linkProgram(program);
-
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 		glDeleteShader(shaders[0]);
 		glDeleteShader(shaders[2]);
@@ -758,7 +751,6 @@ public:
 		glm::vec3 vertexArray[3] = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
 		glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
 		glUniform4f(glGetUniformLocation(program, "in_Color"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
-		glUniform1f(glGetUniformLocation(program, "alpha"), alpha);
 
 		int index = 0;
 		float offset = 2.f;
@@ -1249,10 +1241,10 @@ void GLrender(float dt) {
 	startTime = clock();
 
 	//Dolly effect
-	//if (dollyEffectActive)
-		//InverseDollyEffect();
-	//else
-		//RV::FOV = glm::radians(65.f);
+	if (dollyEffectActive)
+		InverseDollyEffect();
+	else
+		RV::FOV = glm::radians(65.f);
 	//Update of the perspective view for the dolly effect
 	RV::_projection = glm::perspective(RV::FOV, (float)800 / (float)600, RV::zNear, RV::zFar);
 
@@ -1372,33 +1364,30 @@ void GUI() {
 		//Light position slider modifiers
 		if (ImGui::Button("Default Cam")) {
 			camera = 0;
-			RV::FOV = glm::radians(65.f);
 		}	if (ImGui::Button("Car Cam")) {
 			camera = 1;
-			RV::FOV = glm::radians(40.f);
 		}
-		ImGui::SliderFloat("Player's camaro windows", &babyCharacter.shader.alpha, 0.f, 1.f);
-		//if (ImGui::CollapsingHeader("Exploding Effect"))
-		//{
-		//	ImGui::Checkbox("Start Explosion", &startExplosion);
-		//	ImGui::SliderFloat("Manual Explosion Effect", &deltaTime, 0.f, 100.f);
-		//	//ImGui::SliderFloat("Billboard X Position", &BillboardPos.x, -40.f, 40.f);
-		//	//ImGui::SliderFloat("Billboard Y Position", &BillboardPos.y, -40.f, 40.f);
-		//	//ImGui::SliderFloat("Billboard Z Position", &BillboardPos.z, -40.f, 40.f);
-		//}
-		//if (ImGui::CollapsingHeader("Light Position"))
-		//{
-		//	ImGui::SliderFloat("Light X Position", &Light::lightPosition.x, -20.f, 20.f);
-		//	ImGui::SliderFloat("Light Y Position", &Light::lightPosition.y, -20.f, 20.f);
-		//	ImGui::SliderFloat("Light Z Position", &Light::lightPosition.z, -20.f, 20.f);
-		//}
-		////Light color slider modifiers
-		//if (ImGui::CollapsingHeader("Light Color"))
-		//{
-		//	ImGui::SliderFloat("Light R Color", &Light::lightColor.r, 0.f, 1.f);
-		//	ImGui::SliderFloat("Light G Color", &Light::lightColor.g, 0.f, 1.f);
-		//	ImGui::SliderFloat("Light B Color", &Light::lightColor.b, 0.f, 1.f);
-		//}
+		if (ImGui::CollapsingHeader("Exploding Effect"))
+		{
+			ImGui::Checkbox("Start Explosion", &startExplosion);
+			ImGui::SliderFloat("Manual Explosion Effect", &deltaTime, 0.f, 100.f);
+			//ImGui::SliderFloat("Billboard X Position", &BillboardPos.x, -40.f, 40.f);
+			//ImGui::SliderFloat("Billboard Y Position", &BillboardPos.y, -40.f, 40.f);
+			//ImGui::SliderFloat("Billboard Z Position", &BillboardPos.z, -40.f, 40.f);
+		}
+		if (ImGui::CollapsingHeader("Light Position"))
+		{
+			ImGui::SliderFloat("Light X Position", &Light::lightPosition.x, -20.f, 20.f);
+			ImGui::SliderFloat("Light Y Position", &Light::lightPosition.y, -20.f, 20.f);
+			ImGui::SliderFloat("Light Z Position", &Light::lightPosition.z, -20.f, 20.f);
+		}
+		//Light color slider modifiers
+		if (ImGui::CollapsingHeader("Light Color"))
+		{
+			ImGui::SliderFloat("Light R Color", &Light::lightColor.r, 0.f, 1.f);
+			ImGui::SliderFloat("Light G Color", &Light::lightColor.g, 0.f, 1.f);
+			ImGui::SliderFloat("Light B Color", &Light::lightColor.b, 0.f, 1.f);
+		}
 		/////////////////////////////////////////////////////////
 	}
 	// .........................
