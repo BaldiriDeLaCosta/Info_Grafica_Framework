@@ -4,7 +4,6 @@
 			in vec2 _outUvs;
 			in vec2 Vertex_UV;
 			in vec4 Vertex_Color;
-			//in vec3 geomPos;
 			out vec4 out_Color;
 			uniform mat4 mv_Mat;
 			uniform vec4 lightPos;
@@ -31,12 +30,9 @@
 				vec4 specular = specularStrength * specWithoutColor * lightColor;
 				////////////////// -Result
 				vec4 result = ambient;
-				//result += diffuse;
-				//result += specular;
 				result *= objectColor;
 				vec4 textureColor = texture(diffuseTexture, Vertex_UV);
 						if(textureColor.a < 0.15)
 							discard;
-				//out_Color = result /*+ textureColor*/;
 				out_Color = textureColor * Vertex_Color;
 		}
