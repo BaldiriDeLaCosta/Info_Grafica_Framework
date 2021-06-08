@@ -32,7 +32,7 @@
 			_FragPos = FragPos[0];
 			
 			// b: Esquerra-Superior
-			vec4 vb = vec4(P + right * -2.0 + up * 2.0, 1.0);
+			vec4 vb = vec4(P + right * 5.0 + up * -5.0, 1.0);
 			gl_Position = mvpMat * vb;
 			//gl_Position = mvpMat * P + right * (-2.0) + up * (2.0);
 			Vertex_UV = vec2(0.0, 1.0);
@@ -40,7 +40,7 @@
 			EmitVertex();
 
 			// a: Esquerra-Inferior 
-			vec4 va = vec4(P + right * -2.0 + up * -2.0, 1.0);
+			vec4 va = vec4(P + right * 5.0 + up * 5.0, 1.0);
 			gl_Position = mvpMat * va;
 			//gl_Position = mvpMat * P + right * (-2.0) + up * (-2.0);
 			Vertex_UV = vec2(0.0, 0.0);
@@ -48,7 +48,7 @@
 			EmitVertex();
 
 			// c: Dreta-Superior
-			vec4 vc = vec4(P + right * 2.0 + up * 2.0, 1.0);
+			vec4 vc = vec4(P + right * -5.0 + up * -5.0, 1.0);
 			gl_Position = mvpMat * vc;
 			//gl_Position = P + right * (2.0) + up * (2.0);
 			Vertex_UV = vec2(1.0, 1.0);
@@ -56,7 +56,7 @@
 			EmitVertex();
 
 			// d: Dreta-Inferior
-			vec4 vd = vec4(P + right * 2.0 + up * -2.0, 1.0);
+			vec4 vd = vec4(P + right * -5.0 + up * 5.0, 1.0);
 			gl_Position = mvpMat * vd;
 			//gl_Position = P + right * (2.0) + up * (-2.0);
 			Vertex_UV = vec2(1.0, 0.0);

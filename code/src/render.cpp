@@ -446,7 +446,6 @@ bool startExplosion = false;
 //Exploding effect
 float startTime, actualTime, deltaTime;
 float alpha = 0.75f;
-glm::vec3 rearviewMirrorPos;
 
 #pragma region ShaderRegion
 
@@ -561,7 +560,6 @@ private:
 	
 public:
 	//unsigned int id;
-	glm::vec2 translations[10];
 
 	Shader() {};
 	Shader(const char* vertexPath, const char* fragmentPath) {
@@ -715,6 +713,15 @@ public:
 		glUniformMatrix4fv(glGetUniformLocation(program, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
 		glUniformMatrix4fv(glGetUniformLocation(program, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
 	}
+	void SetUniformsMats(const glm::mat4* objMat) {
+		for (int i = 0; i < 10; i++)
+		{
+			char ichar = i + 48;
+			glUniformMatrix4fv(glGetUniformLocation(program, "objMat[" + ichar + ']'), 1, GL_FALSE, glm::value_ptr(objMat[i]));
+		}
+		glUniformMatrix4fv(glGetUniformLocation(program, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
+		glUniformMatrix4fv(glGetUniformLocation(program, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
+	}
 
 	void SetUniformsLights(const glm::vec3& objectColor) {
 		glUniform4f(glGetUniformLocation(program, "color"), 1.f, 0.1f, 1.f, 0.f);
@@ -727,23 +734,6 @@ public:
 		glUniform4f(glGetUniformLocation(program, "in_Color"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
 		glUniform1f(glGetUniformLocation(program, "alpha"), alpha);
 
-		int index = 0;
-		float offset = 2.f;
-		for (int y = 0; y < 2; y ++)
-		{
-			for (int x = 0; x < 5; x ++)
-			{
-				glm::vec2 translation;
-				translation.x = (float)x / 10.f + offset;
-				translation.y = (float)y / 10.f + offset;
-				translations[index++];
-			}
-		}
-		//for (int i = 0; i < 10; i++)
-		//{
-		//	glUniform2f(glGetUniformLocation(program, "offsets[" + std::to_string(i) + "]")), )
-		//}
-		
 	}
 	void SetUniformsLights(const glm::vec3& objectColor, const glm::vec3& lightColor) {
 		glUniform4f(glGetUniformLocation(program, "color"), 1.f, 0.1f, 1.f, 0.f);
@@ -754,6 +744,7 @@ public:
 		glm::vec3 vertexArray[3] = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
 		glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
 		glUniform4f(glGetUniformLocation(program, "in_Color"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
+		glUniform1f(glGetUniformLocation(program, "alpha"), alpha);
 	}
 
 };
@@ -790,12 +781,13 @@ public:
 	bool available = false;
 	bool enabled = true;
 	glm::mat4 objMat = glm::mat4(1.f);
+	glm::mat4* objMatArray = new glm::mat4 [10];
 	glm::vec3 initPos;
 	float rotation;
 	glm::vec3 rotationAxis;
 	glm::vec3 modelSize;
 	glm::vec4 objectColor;
-	glm::vec3 carPos = glm::vec3(0.0f, 0.0f, 0.0f);
+	glm::vec3 pos = glm::vec3(0.0f, 0.0f, 0.0f);
 	bool turnLeft, turnRight;
 
 	bool loadOBJ(const char* path,
@@ -900,7 +892,7 @@ public:
 			break;
 		case Type::QUAD:
 			available = true;
-			vertices.push_back(glm::vec3(0.f, 7.f, -10.f));
+			vertices.push_back(glm::vec3(0.f, 5.f, -10.f));
 			uvs.push_back(glm::vec2(0.5f, 0.5f));
 			normals.push_back(glm::vec3(0.f, 0.f, 1.f));
 			break;
@@ -919,7 +911,7 @@ public:
 		rotation = _rotation;
 		rotationAxis = _rotationAxis;
 
-		if (available && _type != Type::SKYBOX && _type != Type::QUAD && _type != Type::REARVIEW_MIRROR) {
+		if (available && _type != Type::SKYBOX /*&& _type != Type::QUAD*/) {
 
 			glEnable(GL_BLEND);
 			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
@@ -950,11 +942,11 @@ public:
 
 			shader = _shader;
 		}
-		else if (available && _type == Type::QUAD)
+		/*else if (available && _type == Type::QUAD)
 		{
 			glGenBuffers(1, &objectVbo[0]);
 			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[0]);
-			glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 10, &shader.translations[0], GL_STATIC_DRAW);
+			glBufferData(GL_ARRAY_BUFFER, sizeof(glm::vec2) * 10, &vertices[0], GL_STATIC_DRAW);
 			glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 			glEnableVertexAttribArray(2);
@@ -964,7 +956,7 @@ public:
 			glVertexAttribDivisor(2, 1);
 
 			shader = _shader;
-		}
+		}*/
 		else if (available && _type == Type::SKYBOX)
 		{
 			glGenVertexArrays(1, &objectVao);
@@ -980,32 +972,32 @@ public:
 
 			shader = _shader;
 		}
-		else if (_type == Type::REARVIEW_MIRROR)
-		{
-			glGenVertexArrays(1, &objectVao);
-			glBindVertexArray(objectVao);
-			glGenBuffers(3, objectVbo);
+		//else if (_type == Type::REARVIEW_MIRROR)
+		//{
+		//	glGenVertexArrays(1, &objectVao);
+		//	glBindVertexArray(objectVao);
+		//	glGenBuffers(3, objectVbo);
 
-			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[0]);
-			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
-			glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 0, 0);
-			glEnableVertexAttribArray(0);
+		//	glBindBuffer(GL_ARRAY_BUFFER, objectVbo[0]);
+		//	glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+		//	glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		//	glEnableVertexAttribArray(0);
 
-			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[1]);
-			glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
-			glVertexAttribPointer((GLuint)1, 3, GL_FLOAT, GL_FALSE, 0, 0);
-			glEnableVertexAttribArray(1);
-			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[2]);
-			glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec3), &uvs[0], GL_STATIC_DRAW);
+		//	glBindBuffer(GL_ARRAY_BUFFER, objectVbo[1]);
+		//	glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
+		//	glVertexAttribPointer((GLuint)1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+		//	glEnableVertexAttribArray(1);
+		//	glBindBuffer(GL_ARRAY_BUFFER, objectVbo[2]);
+		//	glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec3), &uvs[0], GL_STATIC_DRAW);
 
-			glVertexAttribPointer((GLuint)2, 2, GL_FLOAT, GL_FALSE, 0, 0);
-			glEnableVertexAttribArray(2);
-			glBindVertexArray(0);
+		//	glVertexAttribPointer((GLuint)2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+		//	glEnableVertexAttribArray(2);
 
-			glBindBuffer(GL_ARRAY_BUFFER, 0);
+		//	glBindVertexArray(0);
+		//	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-			shader = _shader;
-		}
+		//	shader = _shader;
+		//}
 	}
 
 	void cleanObject() {
@@ -1024,10 +1016,10 @@ public:
 
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
 		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP);
 
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 800, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, 800, 800, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL);
 
 		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
 		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_tex, 0);
@@ -1054,11 +1046,25 @@ public:
 			shader.UseProgram();
 			shader.UseTexture();
 
-			if (_type == Type::CHARACTER)
-				objMat = glm::translate(glm::mat4(), carPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
+			if (_type == Type::CHARACTER || _type == Type::REARVIEW_MIRROR)
+				objMat = glm::translate(glm::mat4(), pos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
+			/*else if(_type == Type::QUAD)
+				for (size_t i = 0; i < 10; i++)
+				{
+					glm::vec3 randPos = glm::vec3((rand() % 11) - 5, 0.f, (rand() % 11) - 5);
+					objMatArray[i] = glm::translate(glm::mat4(), randPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
+				}*/
 			else
 				objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
-			shader.SetUniformsMats(objMat);
+			
+			/*if (_type == Type::QUAD)
+			{
+				shader.SetUniformsMats(objMatArray);
+			}
+			else
+			{*/
+				shader.SetUniformsMats(objMat);
+			//}
 			shader.SetUniformsLights(objectColor);
 
 			if (_type == Type::CHARACTER)
@@ -1071,9 +1077,14 @@ public:
 			else if (_type == Type::SKYBOX)
 				glDrawArrays(GL_POINTS, 0, 1);
 			else if (_type == Type::QUAD)
-				glDrawArraysInstancedBaseInstance(GL_POINTS, 0, 1, 10, 0);
+				glDrawArrays(GL_POINTS, 0, 1);
+				//glDrawArraysInstanced(GL_POINTS, 0, 1, 10);
 			else if (_type == Type::REARVIEW_MIRROR)
-				glDrawArrays(GL_TRIANGLES, 0, 36);
+			{
+				glBindTexture(GL_TEXTURE_2D, fbo_tex);
+				glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
+				glBindTexture(GL_TEXTURE_2D, 0);
+			}
 
 			glUseProgram(0);
 			glBindVertexArray(0);
@@ -1088,7 +1099,15 @@ public:
 			shader.UseTexture();
 
 			objMat = glm::translate(glm::mat4(), currentPos) * glm::rotate(glm::mat4(), rot, rotAxis) * glm::scale(glm::mat4(), modelSize);
-			shader.SetUniformsMats(objMat);
+			
+			/*if (_type == Type::QUAD)
+			{
+				shader.SetUniformsMats(objMatArray);
+			}
+			else
+			{*/
+				shader.SetUniformsMats(objMat);
+			//}
 			shader.SetUniformsLights(objectColor);
 
 			if(_type == Type::CHARACTER)
@@ -1100,8 +1119,9 @@ public:
 				glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
 			else if (_type == Type::QUAD)
 				glDrawArrays(GL_POINTS, 0, 1);
+				//glDrawArraysInstanced(GL_POINTS, 0, 1, 10);
 			else if (_type == Type::REARVIEW_MIRROR)
-				glDrawArrays(GL_TRIANGLES, 0, 36);
+				glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
 
 			glUseProgram(0);
 			glBindVertexArray(0);
@@ -1125,7 +1145,10 @@ Object babyCharacter2;
 //Object daddyCharacter;
 Object ground;
 Object light;
-Object Quad;
+Object Tree1;
+Object Tree2;
+Object Tree3;
+Object Tree4;
 Object skybox;
 Object RearViewMirror;
 
@@ -1135,7 +1158,7 @@ void drawFrameBufferObjectTexture() {
 	//Store current matrix values to reset to them later
 	glm::mat4 temp_mvp = RenderVars::_MVP;
 	glm::mat4 temp_mv = RenderVars::_modelView;
-	glm::mat4 temp_projection = RV::_projection;
+	//glm::mat4 temp_projection = RV::_projection;
 
 	//Set up framebuffer and draw objects to it
 	glBindFramebuffer(GL_FRAMEBUFFER, RearViewMirror.fbo);
@@ -1144,27 +1167,29 @@ void drawFrameBufferObjectTexture() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	glEnable(GL_DEPTH_TEST);
 
-	RV::_projection = glm::perspective(RV::FOV, (float)800 / (float)800, RV::zNear, RV::zFar);
+	RenderVars::_MVP = RenderVars::_projection;
 	RenderVars::_modelView = glm::mat4(1.f);
 
-	RenderVars::_modelView = glm::translate(RenderVars::_modelView, glm::vec3(0, rearviewMirrorPos.y - 7.f, rearviewMirrorPos.z));
+	RenderVars::_modelView = glm::translate(RenderVars::_modelView, glm::vec3(0, RearViewMirror.pos.y, RearViewMirror.pos.z));
 	RenderVars::_modelView = glm::rotate(RenderVars::_modelView, glm::radians(180.f), glm::vec3(0, 1, 0));
 
-	RenderVars::_MVP = RV::_projection * RV::_modelView;
+	//RenderVars::_MVP = RenderVars::_projection * RenderVars::_modelView;
 
 	//draw objects here
-	skybox.drawObject(Object::Type::SKYBOX);
+	//skybox.drawObject(Object::Type::SKYBOX);
 	ground.drawObject(Object::Type::CUBE);
-	babyCharacter.drawObject(Object::Type::CHARACTER);
+	//babyCharacter.drawObject(Object::Type::CHARACTER);
 
 	//restore values
 	RenderVars::_MVP = temp_mvp;
 	RenderVars::_modelView = temp_mv;
-	RV::_projection = temp_projection;
+	//RV::_projection = temp_projection;
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
-	//glClearColor(0.2, .2, 0.2, 1.);
-	glViewport(0, 0, RV::width, RV::height);
 
+	glViewport(0, 0, RenderVars::width, RenderVars::height);
+	glBindTexture(GL_TEXTURE_2D, RearViewMirror.fbo_tex);
+
+	RearViewMirror.drawObject(Object::Type::REARVIEW_MIRROR);
 }
 
 void GLinit(int width, int height) {
@@ -1204,7 +1229,7 @@ void GLinit(int width, int height) {
 	staticPhongShader.AddTextureID("resources/grassTexture.png");
 
 	Shader BBShader = Shader("shaders/BBVertexShader.vs", "shaders/BBFragmentShader.fs", "shaders/BBGeometryShader.gs");
-	BBShader.AddTextureID("resources/Sun.png");
+	BBShader.AddTextureID("resources/trevenant.png");
 
 	Shader shaderWithTexture = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShaderWithTexture.fs", "shaders/phongGeometryShader.gs");
 
@@ -1213,8 +1238,8 @@ void GLinit(int width, int height) {
 	Shader skyboxShader = Shader("shaders/SkyboxVertexShader.vs", "shaders/SkyboxFragmentShader.fs", "shaders/SkyboxGeometryShader.gs");
 	skyboxShader.AddSkyboxTextureID(skyboxTextureSides);
 
-	Shader RVMirrorShader = Shader("shaders/RVMVertexShader.vs", "shaders/RVMFragmentShader.fs");
-	RVMirrorShader.AddTextureID("resources/grassTexture.png");
+	Shader RVMirrorShader = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShader.fs", "shaders/phongGeometryShader.gs");
+	RVMirrorShader.AddFBTextureID(RearViewMirror.fbo_tex);
 
 	//Objects inicialization
 	skybox.setupObject(Object::Type::SKYBOX, skyboxShader);
@@ -1228,12 +1253,15 @@ void GLinit(int width, int height) {
 	ground.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
 	light.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
 		
-	Quad.setupObject(Object::Type::QUAD, BBShader);
+	Tree1.setupObject(Object::Type::QUAD, BBShader);
+	Tree2.setupObject(Object::Type::QUAD, BBShader);
+	Tree3.setupObject(Object::Type::QUAD, BBShader);
+	Tree4.setupObject(Object::Type::QUAD, BBShader);
 
 	RearViewMirror.setupFBO();
 	RearViewMirror.setupObject(Object::Type::REARVIEW_MIRROR, RVMirrorShader,
-		glm::vec3(babyCharacter.carPos.x, babyCharacter.carPos.y, babyCharacter.carPos.z),
-		0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1, 1, 0.05));
+		glm::vec3(babyCharacter.pos.x, babyCharacter.pos.y, babyCharacter.pos.z),
+		0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.4, 0.2f, 0.0f));
 
 }
 
@@ -1248,32 +1276,9 @@ void GLcleanup() {
 	// ...
 	/////////////////////////////////////////////////////////
 }
-bool dollyEffectActive = false;
-void InverseDollyEffect()
-{
-	//Function to change the Field of View depending on the distance to the focus point & to the width of the scene
-	float width = 16.f;
-	RV::FOV = 2.f * glm::atan(0.5f * width / glm::abs(RV::panv[2] + 0.5f));
-}
 
 void GLrender(float dt) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-	//actualTime = clock();
-	//
-	//if (startExplosion)
-	//{
-	//	deltaTime += (actualTime - startTime) / 1000;
-	//}
-	//startTime = clock();
-
-	////Dolly effect
-	//if (dollyEffectActive)
-	//	InverseDollyEffect();
-	//else
-	//	RV::FOV = glm::radians(65.f);
-	////Update of the perspective view for the dolly effect
-	//RV::_projection = glm::perspective(RV::FOV, (float)800 / (float)600, RV::zNear, RV::zFar);
 
 	if (camera == 0)
 	{
@@ -1284,6 +1289,7 @@ void GLrender(float dt) {
 		RV::_modelView = glm::rotate(RV::_modelView, RV::rota[0], glm::vec3(0.f, 1.f, 0.f));
 
 		RV::_MVP = RV::_projection * RV::_modelView;
+		drawFrameBufferObjectTexture();
 	}
 	else if (camera == 1)
 	{
@@ -1291,23 +1297,21 @@ void GLrender(float dt) {
 
 		RV::_modelView = glm::rotate(RV::_modelView, -(float)PI, glm::vec3(0.f, 1.0f, 0.f));
 		RV::_modelView = glm::rotate(RV::_modelView, -babyCharacter.rotation, glm::vec3(0.f, 1.0f, 0.f));
-		RV::_modelView = glm::translate(RV::_modelView,	-glm::vec3(babyCharacter.carPos.x, babyCharacter.carPos.y + 1.5f, babyCharacter.carPos.z));
+		RV::_modelView = glm::translate(RV::_modelView,	-glm::vec3(babyCharacter.pos.x, babyCharacter.pos.y + 1.5f, babyCharacter.pos.z));
 
 		RV::_MVP = RV::_projection * RV::_modelView;
-
 		drawFrameBufferObjectTexture();
-
 	}
 
-	/*babyCharacter.carPos.z += glm::cos(babyCharacter.rotation);
-	babyCharacter.carPos.x += glm::sin(babyCharacter.rotation);
-	babyCharacter2.carPos.z += glm::cos(babyCharacter.rotation);
-	babyCharacter2.carPos.x += glm::sin(babyCharacter.rotation);*/
+	//babyCharacter.pos.z += glm::cos(babyCharacter.rotation);
+	//babyCharacter.pos.x += glm::sin(babyCharacter.rotation);
+	//babyCharacter2.pos.z += glm::cos(babyCharacter.rotation);
+	//babyCharacter2.pos.x += glm::sin(babyCharacter.rotation);
 
 	babyCharacter.rotationAxis = glm::vec3(0, 1, 0);
 	babyCharacter2.rotationAxis = glm::vec3(0, 1, 0);
 
-	if (babyCharacter.carPos.z >= 10.f)
+	if (babyCharacter.pos.z >= 10.f)
 	{
 		babyCharacter.turnLeft = true;
 		babyCharacter2.turnLeft = true;
@@ -1317,7 +1321,7 @@ void GLrender(float dt) {
 		babyCharacter.turnLeft = false;
 		babyCharacter2.turnLeft = false;
 	}
-	if (babyCharacter.carPos.x <= -17.f)
+	if (babyCharacter.pos.x <= -17.f)
 	{
 		babyCharacter.turnRight = true;
 		babyCharacter2.turnRight = true;
@@ -1339,7 +1343,10 @@ void GLrender(float dt) {
 		babyCharacter2.rotation -= 0.05f;
 	}
 
-
+	RearViewMirror.pos = glm::vec3(babyCharacter.pos.x, babyCharacter.pos.y, babyCharacter.pos.z);
+	RearViewMirror.rotationAxis = glm::vec3(0, 1, 0);
+	RearViewMirror.rotation = babyCharacter.rotation;
+	RearViewMirror.pos += glm::vec3(0, 1.8f, 0.6f);
 
 	//Drawing of the scene objects
 	glEnable(GL_STENCIL_TEST);
@@ -1350,6 +1357,8 @@ void GLrender(float dt) {
 	skybox.drawObject(Object::Type::SKYBOX);
 	ground.drawObject(Object::Type::CUBE);
 
+	RearViewMirror.drawObject(Object::Type::REARVIEW_MIRROR);
+
 	//glDepthMask(GL_FALSE); // Don't write to depth buffer
 	//glStencilFunc(GL_EQUAL, 1, 0xFF); // Pass test if stencil value is 1
 	//glStencilMask(0x00); // Don't write anything to stencil buffer
@@ -1358,20 +1367,21 @@ void GLrender(float dt) {
 	//glStencilMask(0xFF); // Don't write anything to stencil buffer
 	glStencilFunc(GL_ALWAYS, 1, 0xFF); // Make all fragments pass sten
 	glStencilMask(0xFF);
-	if (camera == 1)
-		glCullFace(GL_FRONT);
+	glDisable(GL_CULL_FACE);
+	//if (camera == 1)
+	//	glCullFace(GL_FRONT);
 	babyCharacter.drawObject(Object::Type::CHARACTER);
-	glCullFace(GL_BACK);
+	glEnable(GL_CULL_FACE);
+	glDisable(GL_BLEND);
+	Tree1.drawObject(Object::Type::QUAD, glm::vec3(10.f, 5.f, -10.f), 0, glm::vec3(1.f, 1.f, 1.f));
+	Tree2.drawObject(Object::Type::QUAD, glm::vec3(-10.f, 5.f, -10.f), 0, glm::vec3(1.f, 1.f, 1.f));
+	Tree3.drawObject(Object::Type::QUAD, glm::vec3(-10.f, 5.f, 10.f), 0, glm::vec3(1.f, 1.f, 1.f));
+	Tree4.drawObject(Object::Type::QUAD, glm::vec3(10.f, 5.f, 10.f), 0, glm::vec3(1.f, 1.f, 1.f));
+	glEnable(GL_BLEND);
 	//brotherCharacter.drawObject(Object::Type::CHARACTER);
 	//sisterCharacter.drawObject(Object::Type::CHARACTER);
 	//mommyCharacter.drawObject(Object::Type::CHARACTER);
 	//daddyCharacter.drawObject(Object::Type::CHARACTER);
-	Quad.drawObject(Object::Type::QUAD);
-
-	rearviewMirrorPos = glm::vec3(babyCharacter.carPos.x, babyCharacter.carPos.y + 3.f, babyCharacter.carPos.z + 0.6f);
-	RearViewMirror.drawObject(Object::Type::REARVIEW_MIRROR,
-		glm::vec3(rearviewMirrorPos.x, rearviewMirrorPos.y, rearviewMirrorPos.z),
-		babyCharacter.rotation, glm::vec3(0, 1, 0));
 
 	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
 	glStencilMask(0x00);
