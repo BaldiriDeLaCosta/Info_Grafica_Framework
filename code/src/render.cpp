@@ -36,12 +36,15 @@ namespace RenderVars {
 	float FOV = glm::radians(65.f);
 	const float zNear = 1.f;
 	const float zFar = 500.f;
-
+	
 	glm::mat4 _projection;
 	glm::mat4 _modelView;
 	glm::mat4 _MVP;
 	glm::mat4 _inv_modelview;
 	glm::vec4 _cameraPoint;
+
+	int width;
+	int height;
 
 	struct prevMouse {
 		float lastx, lasty;
@@ -85,6 +88,10 @@ float vertices[] = {
 
 void GLResize(int width, int height) {
 	glViewport(0, 0, width, height);
+
+	RV::width = width;
+	RV::height = height;
+
 	if (height != 0) RV::_projection = glm::perspective(RV::FOV, (float)width / (float)height, RV::zNear, RV::zFar);
 	else RV::_projection = glm::perspective(RV::FOV, 0.f, RV::zNear, RV::zFar);
 }
@@ -409,30 +416,12 @@ namespace Cube {
 		if (cubeScale < 1.f) cubeScale = 1.f;
 
 		glEnable(GL_PRIMITIVE_RESTART);
-		//glm::mat4 TranslationMatrix = glm::translate(glm::mat4(), glm::vec3(-1.0f, 2.0f, 3.0f));
-		//objMat = TranslationMatrix;
 
 		glBindVertexArray(cubeVao);
 		glUseProgram(cubeProgram);
 		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mv_Mat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_modelView));
 		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "mvpMat"), 1, GL_FALSE, glm::value_ptr(RenderVars::_MVP));
-		/*glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 0.5f+0.5f*sin(currentTime), 1.f, 0.f);
-		glDrawElements(GL_TRIANGLE_STRIP, numVerts, GL_UNSIGNED_BYTE, 0);*/
-
-		////Translation matrix
-		//TranslationMatrix = glm::translate(glm::mat4(), glm::vec3(-1.0f, 2.0f, 3.0f));
-		////Scale Matrix
-		//glm::mat4 ScaleMatrix = glm::scale(glm::mat4(), glm::vec3(2, 2, 2));
-		////Rotation Matrix
-		//glm::mat4 RotationMatrix = glm::rotate(glm::mat4(), currentTime * 3.f, glm::vec3(0.0f, 1.0f, 0.0f));
-
-		////Secondary Translation Matrix
-		//glm::mat4 TranslationMatrix2 = glm::translate(glm::mat4(), glm::vec3(3.0f, 0.0f, 0.0f));
-
-		////Les operacions amb matrius es fan d'esquerra a dreta -->
-		////la llògica es fa de dreta a esquerra <--
-		//objMat = TranslationMatrix * RotationMatrix * TranslationMatrix2 * ScaleMatrix;
 
 		glUniformMatrix4fv(glGetUniformLocation(cubeProgram, "objMat"), 1, GL_FALSE, glm::value_ptr(objMat));
 		glUniform4f(glGetUniformLocation(cubeProgram, "color"), 0.1f, 1.f, 1.f, 0.f);
@@ -456,7 +445,8 @@ namespace Cube {
 bool startExplosion = false;
 //Exploding effect
 float startTime, actualTime, deltaTime;
-
+float alpha = 0.75f;
+glm::vec3 rearviewMirrorPos;
 
 #pragma region ShaderRegion
 
@@ -509,20 +499,16 @@ namespace Texture {
 		
 		return tmpTextureID;
 	}
+	unsigned int AddTextureID(GLuint texture) {
+		if (!FindTexture(texture))
+		{
+			glBindTexture(GL_TEXTURE_2D, texture);
+			textureIDs.push_back(texture);
+		}
+		return texture;
+	}
+	
 
-	//static unsigned int CreateTextureID(const char* texturePath) {
-	//	unsigned int textureID;
-
-	//	data = stbi_load(texturePath, &x, &y, &n, 4);
-	//	//stbi_image_free(data);
-	//	glGenTextures(1, &textureID); // Create the handle of the texture
-	//	glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
-	//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	//	return textureID;
-	//}
 }
 
 class Shader {
@@ -662,13 +648,18 @@ public:
 	}
 
 	void AddTextureID(const char* texturePath) {
-		//data = stbi_load(texturePath, &x, &y, &n, 4);
-		////stbi_image_free(data);
-		//glGenTextures(1, &texturesID); // Create the handle of the texture
 		unsigned int newTextureID = Texture::AddTextureID(texturePath);
 		if (!Texture::FindTexture(newTextureID, textureIDs))
 		{
 			textureIDs.push_back(newTextureID);
+		}
+	}
+
+	void AddFBTextureID(unsigned int _textureID) {
+		if (!Texture::FindTexture(_textureID, textureIDs))
+		{
+			Texture::AddTextureID(_textureID);
+			textureIDs.push_back(_textureID);
 		}
 	}
 
@@ -678,23 +669,6 @@ public:
 			textureIDs.push_back(_textureID);
 		}
 	}
-
-	/*void SetTextureID(unsigned int _textureID) {
-		textureIDs = _textureID;
-	}*/
-	//static unsigned int CreateTextureID(const char* texturePath) {
-	//	unsigned int textureID;
-
-	//	data = stbi_load(texturePath, &x, &y, &n, 4);
-	//	//stbi_image_free(data);
-	//	glGenTextures(1, &textureID); // Create the handle of the texture
-	//	glBindTexture(GL_TEXTURE_2D, textureID); //Bind it
-	//	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, x, y, 0, GL_RGBA, GL_UNSIGNED_BYTE, data); //Load the data
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	//	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	//	return textureID;
-	//}
 
 	void UseProgram() {
 		glUseProgram(program);
@@ -751,6 +725,7 @@ public:
 		glm::vec3 vertexArray[3] = { glm::vec3(-1.f, -1.f, 2.f), glm::vec3(0.f, 3.f, 1.f), glm::vec3(2.f, 1.f, 0.f) };
 		glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
 		glUniform4f(glGetUniformLocation(program, "in_Color"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
+		glUniform1f(glGetUniformLocation(program, "alpha"), alpha);
 
 		int index = 0;
 		float offset = 2.f;
@@ -790,7 +765,7 @@ public:
 class Object {
 public:
 	//Enum class for diferent object models
-	static enum class Type { CHARACTER, CUBE, QUAD, SKYBOX, COUNT };
+	static enum class Type { CHARACTER, CUBE, QUAD, SKYBOX, REARVIEW_MIRROR, COUNT };
 
 	std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
 	std::vector< glm::vec3 > temp_vertices;
@@ -805,6 +780,7 @@ public:
 
 	GLuint objectVao;
 	GLuint objectVbo[3];
+	GLuint fbo, fbo_tex;
 
 	//GLuint objectShaders[3];
 	//GLuint objectProgram;
@@ -932,6 +908,8 @@ public:
 			available = true;
 			vertices.push_back(glm::vec3(0.f, 0.f, 0.f));
 			break;
+		case Type::REARVIEW_MIRROR:
+			available = loadOBJ("resources/cube.obj.txt", vertices, uvs, normals);
 		default:;
 
 		}
@@ -941,12 +919,14 @@ public:
 		rotation = _rotation;
 		rotationAxis = _rotationAxis;
 
-		if (available && _type != Type::SKYBOX && _type != Type::QUAD) {
+		if (available && _type != Type::SKYBOX && _type != Type::QUAD && _type != Type::REARVIEW_MIRROR) {
+
+			glEnable(GL_BLEND);
+			glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
 			glGenVertexArrays(1, &objectVao);
 			glBindVertexArray(objectVao);
 			glGenBuffers(3, objectVbo);
-
 
 			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[0]);
 			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
@@ -1000,6 +980,32 @@ public:
 
 			shader = _shader;
 		}
+		else if (_type == Type::REARVIEW_MIRROR)
+		{
+			glGenVertexArrays(1, &objectVao);
+			glBindVertexArray(objectVao);
+			glGenBuffers(3, objectVbo);
+
+			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[0]);
+			glBufferData(GL_ARRAY_BUFFER, vertices.size() * sizeof(glm::vec3), &vertices[0], GL_STATIC_DRAW);
+			glVertexAttribPointer((GLuint)0, 3, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(0);
+
+			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[1]);
+			glBufferData(GL_ARRAY_BUFFER, normals.size() * sizeof(glm::vec3), &normals[0], GL_STATIC_DRAW);
+			glVertexAttribPointer((GLuint)1, 3, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(1);
+			glBindBuffer(GL_ARRAY_BUFFER, objectVbo[2]);
+			glBufferData(GL_ARRAY_BUFFER, uvs.size() * sizeof(glm::vec3), &uvs[0], GL_STATIC_DRAW);
+
+			glVertexAttribPointer((GLuint)2, 2, GL_FLOAT, GL_FALSE, 0, 0);
+			glEnableVertexAttribArray(2);
+			glBindVertexArray(0);
+
+			glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+			shader = _shader;
+		}
 	}
 
 	void cleanObject() {
@@ -1010,13 +1016,34 @@ public:
 
 	}
 
-	//void updateObject(const glm::mat4& transform) {
-	//	if (available && enabled) {
-	//		glUseProgram(objectProgram);
-	//		objMat = transform;
-	//		glUseProgram(0);
-	//	}
-	//}
+	void setupFBO() {
+		glGenFramebuffers(1, &fbo);
+
+		glGenTextures(1, &fbo_tex);
+		glBindTexture(GL_TEXTURE_2D, fbo_tex);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, 800, 800, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+		glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, fbo_tex, 0);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		GLuint rbo;
+
+		glGenBuffers(1, &rbo);
+		glBindRenderbuffer(GL_RENDERBUFFER, rbo);
+		glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, 800, 800);
+		glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, rbo);
+
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+		glBindTexture(GL_TEXTURE_2D, 0);
+		glBindTexture(GL_RENDERBUFFER, 0);
+	}
 
 	//Object drawing function
 	void drawObject(Type _type) {
@@ -1043,26 +1070,26 @@ public:
 				glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
 			else if (_type == Type::SKYBOX)
 				glDrawArrays(GL_POINTS, 0, 1);
-			if (_type == Type::QUAD)
-			{
+			else if (_type == Type::QUAD)
 				glDrawArraysInstancedBaseInstance(GL_POINTS, 0, 1, 10, 0);
-			}
+			else if (_type == Type::REARVIEW_MIRROR)
+				glDrawArrays(GL_TRIANGLES, 0, 36);
 
 			glUseProgram(0);
 			glBindVertexArray(0);
 		}
 	}
 	//Object drawing function with position & light color to update them at GLrender()
-	void drawObject(Type _type, glm::vec3 currentPos, glm::vec4 _lightColor = Light::lightColor) {
+	void drawObject(Type _type, glm::vec3 currentPos, float rot, glm::vec3 rotAxis) {
 		if (available && enabled) {
 			glBindVertexArray(objectVao);
 
 			shader.UseProgram();
 			shader.UseTexture();
 
-			objMat = glm::translate(glm::mat4(), currentPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
+			objMat = glm::translate(glm::mat4(), currentPos) * glm::rotate(glm::mat4(), rot, rotAxis) * glm::scale(glm::mat4(), modelSize);
 			shader.SetUniformsMats(objMat);
-			shader.SetUniformsLights(objectColor, _lightColor);
+			shader.SetUniformsLights(objectColor);
 
 			if(_type == Type::CHARACTER)
 				glUniform1f(glGetUniformLocation(shader.GetProgram(), "deltaTime"), deltaTime);
@@ -1073,6 +1100,8 @@ public:
 				glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
 			else if (_type == Type::QUAD)
 				glDrawArrays(GL_POINTS, 0, 1);
+			else if (_type == Type::REARVIEW_MIRROR)
+				glDrawArrays(GL_TRIANGLES, 0, 36);
 
 			glUseProgram(0);
 			glBindVertexArray(0);
@@ -1098,8 +1127,45 @@ Object ground;
 Object light;
 Object Quad;
 Object skybox;
+Object RearViewMirror;
 
 int camera = 0;
+
+void drawFrameBufferObjectTexture() {
+	//Store current matrix values to reset to them later
+	glm::mat4 temp_mvp = RenderVars::_MVP;
+	glm::mat4 temp_mv = RenderVars::_modelView;
+	glm::mat4 temp_projection = RV::_projection;
+
+	//Set up framebuffer and draw objects to it
+	glBindFramebuffer(GL_FRAMEBUFFER, RearViewMirror.fbo);
+	glClearColor(1.f, 1.f, 1.f, 1.f);
+	glViewport(0, 0, 800, 800);
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+	glEnable(GL_DEPTH_TEST);
+
+	RV::_projection = glm::perspective(RV::FOV, (float)800 / (float)800, RV::zNear, RV::zFar);
+	RenderVars::_modelView = glm::mat4(1.f);
+
+	RenderVars::_modelView = glm::translate(RenderVars::_modelView, glm::vec3(0, rearviewMirrorPos.y - 7.f, rearviewMirrorPos.z));
+	RenderVars::_modelView = glm::rotate(RenderVars::_modelView, glm::radians(180.f), glm::vec3(0, 1, 0));
+
+	RenderVars::_MVP = RV::_projection * RV::_modelView;
+
+	//draw objects here
+	skybox.drawObject(Object::Type::SKYBOX);
+	ground.drawObject(Object::Type::CUBE);
+	babyCharacter.drawObject(Object::Type::CHARACTER);
+
+	//restore values
+	RenderVars::_MVP = temp_mvp;
+	RenderVars::_modelView = temp_mv;
+	RV::_projection = temp_projection;
+	glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	//glClearColor(0.2, .2, 0.2, 1.);
+	glViewport(0, 0, RV::width, RV::height);
+
+}
 
 void GLinit(int width, int height) {
 	glViewport(0, 0, width, height);
@@ -1110,6 +1176,8 @@ void GLinit(int width, int height) {
 	glEnable(GL_CULL_FACE);
 	glCullFace(GL_BACK);
 
+	RV::width = width;
+	RV::height = height;
 	startTime = actualTime = clock();
 	deltaTime = 0;
 
@@ -1145,6 +1213,9 @@ void GLinit(int width, int height) {
 	Shader skyboxShader = Shader("shaders/SkyboxVertexShader.vs", "shaders/SkyboxFragmentShader.fs", "shaders/SkyboxGeometryShader.gs");
 	skyboxShader.AddSkyboxTextureID(skyboxTextureSides);
 
+	Shader RVMirrorShader = Shader("shaders/RVMVertexShader.vs", "shaders/RVMFragmentShader.fs");
+	RVMirrorShader.AddTextureID("resources/grassTexture.png");
+
 	//Objects inicialization
 	skybox.setupObject(Object::Type::SKYBOX, skyboxShader);
 	babyCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.f, 0.f, 0.f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.02f, 0.02f, 0.02f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
@@ -1158,56 +1229,12 @@ void GLinit(int width, int height) {
 	light.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
 		
 	Quad.setupObject(Object::Type::QUAD, BBShader);
-	/////////////////////////////////////////////////////TODO
-	GLuint vertex_shader;
-	GLuint fragment_shader;
-#pragma region Commented
-	
-	////Compile the shaders
-	//vertex_shader =
-	//	glCreateShader(GL_VERTEX_SHADER);
-	//glShaderSource(vertex_shader, 1,
-	//	vertex_shader_source, NULL);
-	//glCompileShader(vertex_shader);
 
-	//fragment_shader =
-	//	glCreateShader(GL_FRAGMENT_SHADER);
-	//glShaderSource(fragment_shader, 1,
-	//	fragment_shader_source, NULL);
-	//glCompileShader(fragment_shader);
+	RearViewMirror.setupFBO();
+	RearViewMirror.setupObject(Object::Type::REARVIEW_MIRROR, RVMirrorShader,
+		glm::vec3(babyCharacter.carPos.x, babyCharacter.carPos.y, babyCharacter.carPos.z),
+		0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1, 1, 0.05));
 
-	////Create the program from the shaders
-	//program = glCreateProgram();
-	//glAttachShader(program, vertex_shader);
-	//glAttachShader(program, fragment_shader);
-	//glLinkProgram(program);
-
-	////Delete the shaders
-	//glDeleteShader(vertex_shader);
-	//glDeleteShader(fragment_shader);
-
-	//glGenVertexArrays(1, &VAO);
-	//glBindVertexArray(VAO);
-
-	//glGenBuffers(1, &VBO);
-
-	//glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-
-	//glVertexAttribPointer(
-	//	0,
-	//	3,
-	//	GL_FLOAT,
-	//	GL_FALSE,
-	//	3 * sizeof(float),
-	//	(void*)0);
-
-	//glEnableVertexAttribArray(0);
-
-	//glBindVertexArray(0);
-#pragma endregion
-
-	/////////////////////////////////////////////////////////
 }
 
 void GLcleanup() {
@@ -1232,21 +1259,21 @@ void InverseDollyEffect()
 void GLrender(float dt) {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-	actualTime = clock();
-	
-	if (startExplosion)
-	{
-		deltaTime += (actualTime - startTime) / 1000;
-	}
-	startTime = clock();
+	//actualTime = clock();
+	//
+	//if (startExplosion)
+	//{
+	//	deltaTime += (actualTime - startTime) / 1000;
+	//}
+	//startTime = clock();
 
-	//Dolly effect
-	if (dollyEffectActive)
-		InverseDollyEffect();
-	else
-		RV::FOV = glm::radians(65.f);
-	//Update of the perspective view for the dolly effect
-	RV::_projection = glm::perspective(RV::FOV, (float)800 / (float)600, RV::zNear, RV::zFar);
+	////Dolly effect
+	//if (dollyEffectActive)
+	//	InverseDollyEffect();
+	//else
+	//	RV::FOV = glm::radians(65.f);
+	////Update of the perspective view for the dolly effect
+	//RV::_projection = glm::perspective(RV::FOV, (float)800 / (float)600, RV::zNear, RV::zFar);
 
 	if (camera == 0)
 	{
@@ -1267,12 +1294,15 @@ void GLrender(float dt) {
 		RV::_modelView = glm::translate(RV::_modelView,	-glm::vec3(babyCharacter.carPos.x, babyCharacter.carPos.y + 1.5f, babyCharacter.carPos.z));
 
 		RV::_MVP = RV::_projection * RV::_modelView;
+
+		drawFrameBufferObjectTexture();
+
 	}
 
-	babyCharacter.carPos.z += glm::cos(babyCharacter.rotation);
+	/*babyCharacter.carPos.z += glm::cos(babyCharacter.rotation);
 	babyCharacter.carPos.x += glm::sin(babyCharacter.rotation);
 	babyCharacter2.carPos.z += glm::cos(babyCharacter.rotation);
-	babyCharacter2.carPos.x += glm::sin(babyCharacter.rotation);
+	babyCharacter2.carPos.x += glm::sin(babyCharacter.rotation);*/
 
 	babyCharacter.rotationAxis = glm::vec3(0, 1, 0);
 	babyCharacter2.rotationAxis = glm::vec3(0, 1, 0);
@@ -1319,6 +1349,7 @@ void GLrender(float dt) {
 	glStencilMask(0x00); // Write to stencil buffer
 	skybox.drawObject(Object::Type::SKYBOX);
 	ground.drawObject(Object::Type::CUBE);
+
 	//glDepthMask(GL_FALSE); // Don't write to depth buffer
 	//glStencilFunc(GL_EQUAL, 1, 0xFF); // Pass test if stencil value is 1
 	//glStencilMask(0x00); // Don't write anything to stencil buffer
@@ -1336,6 +1367,11 @@ void GLrender(float dt) {
 	//mommyCharacter.drawObject(Object::Type::CHARACTER);
 	//daddyCharacter.drawObject(Object::Type::CHARACTER);
 	Quad.drawObject(Object::Type::QUAD);
+
+	rearviewMirrorPos = glm::vec3(babyCharacter.carPos.x, babyCharacter.carPos.y + 3.f, babyCharacter.carPos.z + 0.6f);
+	RearViewMirror.drawObject(Object::Type::REARVIEW_MIRROR,
+		glm::vec3(rearviewMirrorPos.x, rearviewMirrorPos.y, rearviewMirrorPos.z),
+		babyCharacter.rotation, glm::vec3(0, 1, 0));
 
 	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
 	glStencilMask(0x00);
@@ -1358,39 +1394,15 @@ void GUI() {
 	{
 		ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / ImGui::GetIO().Framerate, ImGui::GetIO().Framerate);
 		/////////////////////////////////////////////////////TODO
-		//Dolly effect checkbox & slider
-		//ImGui::Checkbox("Dolly Effect", &dollyEffectActive);
-		//ImGui::SliderFloat("Dolly Effect Slider", &RV::panv[2], -16.f, -6.f);
-		//Light position slider modifiers
 		if (ImGui::Button("Default Cam")) {
 			camera = 0;
+			RV::FOV = glm::radians(65.f);
 		}	if (ImGui::Button("Car Cam")) {
 			camera = 1;
+			RV::FOV = glm::radians(30.f);
 		}
-		if (ImGui::CollapsingHeader("Exploding Effect"))
-		{
-			ImGui::Checkbox("Start Explosion", &startExplosion);
-			ImGui::SliderFloat("Manual Explosion Effect", &deltaTime, 0.f, 100.f);
-			//ImGui::SliderFloat("Billboard X Position", &BillboardPos.x, -40.f, 40.f);
-			//ImGui::SliderFloat("Billboard Y Position", &BillboardPos.y, -40.f, 40.f);
-			//ImGui::SliderFloat("Billboard Z Position", &BillboardPos.z, -40.f, 40.f);
-		}
-		if (ImGui::CollapsingHeader("Light Position"))
-		{
-			ImGui::SliderFloat("Light X Position", &Light::lightPosition.x, -20.f, 20.f);
-			ImGui::SliderFloat("Light Y Position", &Light::lightPosition.y, -20.f, 20.f);
-			ImGui::SliderFloat("Light Z Position", &Light::lightPosition.z, -20.f, 20.f);
-		}
-		//Light color slider modifiers
-		if (ImGui::CollapsingHeader("Light Color"))
-		{
-			ImGui::SliderFloat("Light R Color", &Light::lightColor.r, 0.f, 1.f);
-			ImGui::SliderFloat("Light G Color", &Light::lightColor.g, 0.f, 1.f);
-			ImGui::SliderFloat("Light B Color", &Light::lightColor.b, 0.f, 1.f);
-		}
-		/////////////////////////////////////////////////////////
+		ImGui::SliderFloat("Windows transparency", &alpha, 0.f, 1.f);
 	}
-	// .........................
 
 	ImGui::End();
 
