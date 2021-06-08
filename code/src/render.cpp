@@ -1303,10 +1303,10 @@ void GLrender(float dt) {
 		drawFrameBufferObjectTexture();
 	}
 
-	//babyCharacter.pos.z += glm::cos(babyCharacter.rotation);
-	//babyCharacter.pos.x += glm::sin(babyCharacter.rotation);
-	//babyCharacter2.pos.z += glm::cos(babyCharacter.rotation);
-	//babyCharacter2.pos.x += glm::sin(babyCharacter.rotation);
+	babyCharacter.pos.z += glm::cos(babyCharacter.rotation);
+	babyCharacter.pos.x += glm::sin(babyCharacter.rotation);
+	babyCharacter2.pos.z += glm::cos(babyCharacter.rotation);
+	babyCharacter2.pos.x += glm::sin(babyCharacter.rotation);
 
 	babyCharacter.rotationAxis = glm::vec3(0, 1, 0);
 	babyCharacter2.rotationAxis = glm::vec3(0, 1, 0);

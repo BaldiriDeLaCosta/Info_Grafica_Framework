@@ -22,7 +22,6 @@
 
 		void main(void)
 		{
-			//vec4 P = gl_in[0].gl_Position;
 			vec3 right = vec3(mv_Mat[0][0], mv_Mat[1][0], mv_Mat[2][0]);
 			vec3 up = vec3(mv_Mat[0][1], mv_Mat[1][1], mv_Mat[2][1]);
 			
@@ -31,34 +30,34 @@
 			_Normal = Normal[0];
 			_FragPos = FragPos[0];
 			
+			mat4 tmpMvpMap = mvpMat;
+			//tmpMvpMap[1][3] = 0.0;
+			tmpMvpMap[2][2] = 0.0;
+			
 			// b: Esquerra-Superior
 			vec4 vb = vec4(P + right * 5.0 + up * -5.0, 1.0);
-			gl_Position = mvpMat * vb;
-			//gl_Position = mvpMat * P + right * (-2.0) + up * (2.0);
+			gl_Position = tmpMvpMap * vb;
 			Vertex_UV = vec2(0.0, 1.0);
 			Vertex_Color = vertex[0].color;
 			EmitVertex();
 
 			// a: Esquerra-Inferior 
 			vec4 va = vec4(P + right * 5.0 + up * 5.0, 1.0);
-			gl_Position = mvpMat * va;
-			//gl_Position = mvpMat * P + right * (-2.0) + up * (-2.0);
+			gl_Position = tmpMvpMap * va;
 			Vertex_UV = vec2(0.0, 0.0);
 			Vertex_Color = vertex[0].color;
 			EmitVertex();
 
 			// c: Dreta-Superior
 			vec4 vc = vec4(P + right * -5.0 + up * -5.0, 1.0);
-			gl_Position = mvpMat * vc;
-			//gl_Position = P + right * (2.0) + up * (2.0);
+			gl_Position = tmpMvpMap * vc;
 			Vertex_UV = vec2(1.0, 1.0);
 			Vertex_Color = vertex[0].color; 
 			EmitVertex();
 
 			// d: Dreta-Inferior
 			vec4 vd = vec4(P + right * -5.0 + up * 5.0, 1.0);
-			gl_Position = mvpMat * vd;
-			//gl_Position = P + right * (2.0) + up * (-2.0);
+			gl_Position = tmpMvpMap * vd;
 			Vertex_UV = vec2(1.0, 0.0);
 			Vertex_Color = vertex[0].color;
 			EmitVertex();

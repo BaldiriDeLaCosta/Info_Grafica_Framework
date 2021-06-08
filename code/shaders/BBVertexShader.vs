@@ -13,6 +13,13 @@
 			uniform mat4 mvpMat;
 			uniform vec4 lightPos;
 			uniform vec4 in_Color;
+			
+			/*mat4 rotMatrix = mat4(
+				1, 0, 0, 1,
+				0, 0, 0, 1,
+				0, 0, 1, 1, 
+				0, 0, 0, 1
+			);*/
 						
 			uniform vec2 offsets[10];
 			out Vertex	{ vec4 color; } vertex;
