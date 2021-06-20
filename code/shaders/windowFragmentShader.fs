@@ -13,11 +13,10 @@
 	
 	void main() {
 		vec4 textureColor = texture(diffuseTexture, _outUvs * vec2(1.0, -1.0))*1.0;
-		//float A;
-		//if(alpha > 0.01) A = alpha - 0.01;
-		//else A = alpha;
-		//if(textureColor.a != 1) textureColor.a = alpha;
-		if(textureColor.a != 1) discard;
+		float A;
+		if(alpha > 0.01) A = alpha - 0.01;
+		else A = alpha;
+		if(textureColor.a != 1) textureColor.a = alpha;
 		
 	
 		out_Color = vec4(_lightIntensity, 1.0) * textureColor;

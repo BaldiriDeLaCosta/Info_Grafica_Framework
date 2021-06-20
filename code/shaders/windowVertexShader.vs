@@ -54,7 +54,7 @@
 		}
 		
 		lightIntensity = ambient/* + diffuse + specular*/;
-		gl_Position = mvpMat * objMat * vec4(vec3(in_Position.x + carPositions[InstID].x * 150, in_Position.y, in_Position.z + carPositions[InstID].y * 150), 1.0);
+		gl_Position = mvpMat * objMat * vec4(in_Position, 1.0);
 		
 	}
 	

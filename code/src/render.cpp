@@ -16,7 +16,6 @@
 #include <ctime>
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
-#define PI 3.141592653589793238462643383279502884L
 
 int x, y, n;
 unsigned char* data;
@@ -405,6 +404,9 @@ public:
 		glUniform3fv(glGetUniformLocation(program, "vertexPositions"), 3, glm::value_ptr(vertexArray[0]));
 		glUniform4f(glGetUniformLocation(program, "in_Color"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
 		glUniform1f(glGetUniformLocation(program, "alpha"), alpha);
+		glm::vec2 carPosition[10] = { glm::vec2(0.0f, 0.0f), glm::vec2(-3.0f, 0.0f), glm::vec2(3.0f, 0.0f), glm::vec2(5.0f, 0.0f), glm::vec2(0.0f, -3.0f), glm::vec2(-5.0f, 0.0f),
+		glm::vec2(-3.0f, -3.0f), glm::vec2(-3.0f, 3.0f), glm::vec2(3.0f, -3.0f), glm::vec2(3.0f, 3.0f)};
+		glUniform2fv(glGetUniformLocation(program, "carPositions"), 10, glm::value_ptr(carPosition[0]));
 
 	}
 
@@ -417,7 +419,7 @@ public:
 class Object {
 public:
 	//Enum class for diferent object models
-	static enum class Type { CHARACTER, CUBE, QUAD, SKYBOX, REARVIEW_MIRROR, COUNT };
+	static enum class Type { CHARACTER, CUBE, QUAD, SKYBOX, REARVIEW_MIRROR, WINDOW, COUNT };
 
 	std::vector< unsigned int > vertexIndices, uvIndices, normalIndices;
 	std::vector< glm::vec3 > temp_vertices;
@@ -545,6 +547,7 @@ public:
 			available = loadOBJ("resources/Camaro.obj.txt", vertices, uvs, normals);
 			break;
 		case Type::CUBE:
+		case Type::WINDOW:
 			available = loadOBJ("resources/cube.obj.txt", vertices, uvs, normals);
 			break;
 		case Type::QUAD:
@@ -662,7 +665,7 @@ public:
 			shader.UseProgram();
 			shader.UseTexture();
 
-			if (_type == Type::CHARACTER || _type == Type::REARVIEW_MIRROR)
+			if (_type == Type::CHARACTER || _type == Type::REARVIEW_MIRROR || _type == Type::WINDOW)
 				objMat = glm::translate(glm::mat4(), pos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
 			else
 				objMat = glm::translate(glm::mat4(), initPos) * glm::rotate(glm::mat4(), rotation, rotationAxis) * glm::scale(glm::mat4(), modelSize);
@@ -670,8 +673,12 @@ public:
 			shader.SetUniformsMats(objMat);
 			shader.SetUniformsLights(objectColor);
 
-			if (_type == Type::CHARACTER || _type == Type::CUBE)
+			if (_type == Type::CUBE || _type == Type::WINDOW)
 				glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
+			else if (_type == Type::CHARACTER)
+			{
+				glDrawArraysInstanced(GL_TRIANGLES, 0, vertices.size(), 10);
+			}
 			else if (_type == Type::SKYBOX)
 				glDrawArrays(GL_POINTS, 0, 1);
 			else if (_type == Type::QUAD)
@@ -700,7 +707,7 @@ public:
 			shader.SetUniformsMats(objMat);
 			shader.SetUniformsLights(objectColor);
 
-			if (_type == Type::CHARACTER || _type == Type::CUBE)
+			if (_type == Type::CHARACTER || _type == Type::CUBE || _type == Type::WINDOW)
 				glDrawArrays(GL_TRIANGLES, 0, vertices.size() * 3);
 			else if (_type == Type::QUAD)
 				glDrawArrays(GL_POINTS, 0, 1);
@@ -731,6 +738,7 @@ Object Tree3;
 Object Tree4;
 Object skybox;
 Object RearViewMirror;
+Object windows;
 
 int camera = 0;
 
@@ -767,6 +775,8 @@ void drawFrameBufferObjectTexture() {
 }
 
 void GLinit(int width, int height) {
+	srand(NULL);
+
 	glViewport(0, 0, width, height);
 	glClearColor(0.2f, 0.2f, 0.2f, 1.f);
 	glClearDepth(1.f);
@@ -805,13 +815,19 @@ void GLinit(int width, int height) {
 	Shader RVMirrorShader = Shader("shaders/phongVertexShader.vs", "shaders/phongFragmentShader.fs", "shaders/phongGeometryShader.gs");
 	RVMirrorShader.AddFBTextureID(RearViewMirror.fbo_tex);
 
+	Shader WindowShader = Shader("shaders/windowVertexShader.vs", "shaders/windowFragmentShader.fs", "shaders/windowGeometryShader.gs");
+	WindowShader.AddTextureID("resources/windowGlassTexture.png");
+
 	//Objects inicialization
 	skybox.setupObject(Object::Type::SKYBOX, skyboxShader);
 	carCharacter.setupObject(Object::Type::CHARACTER, phongShader, glm::vec3(0.f, 0.f, 0.f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.02f, 0.02f, 0.02f), glm::vec4(0.7f, 0.2f, 0.95f, 0.0f));
 
 	ground.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(0.0f, -1.0f, 0.0f), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(100.0f, 1.0f, 100.0f), glm::vec4(0.0f, 1.0f, 0.0f, 0.0f));
 	light.setupObject(Object::Type::CUBE, staticPhongShader, glm::vec3(Light::lightPosition.x, Light::lightPosition.y, Light::lightPosition.z), 0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(1.0f, 1.0f, 1.0f), glm::vec4(Light::lightColor.r, Light::lightColor.g, Light::lightColor.b, 1.0f));
-		
+	
+	windows.setupObject(Object::Type::WINDOW, WindowShader, glm::vec3(carCharacter.pos.x, carCharacter.pos.y, carCharacter.pos.z),
+		0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(5.0f, 5.0f, 5.0f));
+
 	Tree1.setupObject(Object::Type::QUAD, BBShader);
 	Tree2.setupObject(Object::Type::QUAD, BBShader);
 	Tree3.setupObject(Object::Type::QUAD, BBShader);
@@ -820,7 +836,7 @@ void GLinit(int width, int height) {
 	RearViewMirror.setupFBO();
 	RearViewMirror.setupObject(Object::Type::REARVIEW_MIRROR, RVMirrorShader,
 		glm::vec3(carCharacter.pos.x, carCharacter.pos.y, carCharacter.pos.z),
-		0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.4, 0.2f, 0.0f));
+		0.f, glm::vec3(1.f, 1.f, 1.f), glm::vec3(0.4f, 0.2f, 0.0f));
 
 }
 
@@ -846,7 +862,7 @@ void GLrender(float dt) {
 	{
 		RV::_modelView = glm::mat4(1.f);
 
-		RV::_modelView = glm::rotate(RV::_modelView, -(float)PI, glm::vec3(0.f, 1.0f, 0.f));
+		RV::_modelView = glm::rotate(RV::_modelView, glm::pi<float>(), glm::vec3(0.f, 1.0f, 0.f));
 		RV::_modelView = glm::rotate(RV::_modelView, -carCharacter.rotation, glm::vec3(0.f, 1.0f, 0.f));
 		RV::_modelView = glm::translate(RV::_modelView,	-glm::vec3(carCharacter.pos.x, carCharacter.pos.y + 1.5f, carCharacter.pos.z));
 
@@ -863,7 +879,7 @@ void GLrender(float dt) {
 	{
 		carCharacter.turnLeft = true;
 	}
-	else if (carCharacter.rotation >= PI * 1.5f)
+	else if (carCharacter.rotation >= glm::pi<float>() * 1.5f)
 	{
 		carCharacter.turnLeft = false;
 	}
@@ -884,6 +900,11 @@ void GLrender(float dt) {
 	{
 		carCharacter.rotation -= 0.05f;
 	}
+
+	windows.pos = glm::vec3(carCharacter.pos.x, carCharacter.pos.y, carCharacter.pos.z);
+	windows.rotationAxis = glm::vec3(0, 1, 0);
+	windows.rotation = carCharacter.rotation;
+	windows.pos += glm::vec3(0, 1.8f, 0.0f);
 
 	RearViewMirror.pos = glm::vec3(carCharacter.pos.x, carCharacter.pos.y, carCharacter.pos.z);
 	RearViewMirror.rotationAxis = glm::vec3(0, 1, 0);
@@ -906,9 +927,12 @@ void GLrender(float dt) {
 	glStencilMask(0xFF);
 	glDisable(GL_CULL_FACE);
 	carCharacter.drawObject(Object::Type::CHARACTER);
+	if (camera == 1)
+		windows.drawObject(Object::Type::WINDOW);
 	glEnable(GL_CULL_FACE);
 
 	glDisable(GL_BLEND);
+
 	Tree1.drawObject(Object::Type::QUAD, glm::vec3(10.f, 5.f, -10.f), 0, glm::vec3(1.f, 1.f, 1.f));
 	Tree2.drawObject(Object::Type::QUAD, glm::vec3(-10.f, 5.f, -10.f), 0, glm::vec3(1.f, 1.f, 1.f));
 	Tree3.drawObject(Object::Type::QUAD, glm::vec3(-10.f, 5.f, 10.f), 0, glm::vec3(1.f, 1.f, 1.f));
