@@ -405,7 +405,7 @@ public:
 		glUniform4f(glGetUniformLocation(program, "in_Color"), objectColor.r, objectColor.g, objectColor.b, 0.0f);
 		glUniform1f(glGetUniformLocation(program, "alpha"), alpha);
 		glm::vec2 carPosition[10] = { glm::vec2(0.0f, 0.0f), glm::vec2(-3.0f, 0.0f), glm::vec2(3.0f, 0.0f), glm::vec2(5.0f, 0.0f), glm::vec2(0.0f, -3.0f), glm::vec2(-5.0f, 0.0f),
-		glm::vec2(-3.0f, -3.0f), glm::vec2(-3.0f, 3.0f), glm::vec2(3.0f, -3.0f), glm::vec2(3.0f, 3.0f)};
+		glm::vec2(-3.0f, -3.0f), glm::vec2(-5.0f, -3.0f), glm::vec2(3.0f, -3.0f), glm::vec2(5.0f, -3.0f)};
 		glUniform2fv(glGetUniformLocation(program, "carPositions"), 10, glm::value_ptr(carPosition[0]));
 
 	}
@@ -927,9 +927,19 @@ void GLrender(float dt) {
 	glStencilMask(0xFF);
 	glDisable(GL_CULL_FACE);
 	carCharacter.drawObject(Object::Type::CHARACTER);
+	
+	glEnable(GL_CULL_FACE);
+
+	glStencilFunc(GL_NOTEQUAL, 1, 0xFF);
+	glStencilMask(0x00);
+	glDepthMask(GL_FALSE);
+	glDisable(GL_CULL_FACE);
 	if (camera == 1)
 		windows.drawObject(Object::Type::WINDOW);
 	glEnable(GL_CULL_FACE);
+	glStencilMask(0xFF);
+	glStencilFunc(GL_KEEP, 1, 0xff);
+	glDepthMask(GL_TRUE);
 
 	glDisable(GL_BLEND);
 
